@@ -56,7 +56,11 @@
   @keyframes fadeUp{from{transform:translateY(12px);opacity:0;}to{transform:translateY(0);opacity:1;}}
   .defect-head{padding:15px 16px 12px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;}
   .defect-head .body{flex:1;min-width:0;}
-  .defect .area-tag{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px;background:var(--card2);color:var(--accent2);border:1px solid var(--line2);}
+  .defect .area-tag{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;background:var(--card2);color:var(--accent2);border:1px solid var(--line2);}
+  .def-num{font-size:12px;font-weight:800;color:var(--accent2);font-family:'Spline Sans Mono',monospace;}
+  .cat-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:0.3px;}
+  .cat-badge.cat-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
+  .cat-badge.cat-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
   .defect .desc{font-size:15px;font-weight:600;line-height:1.4;margin-bottom:6px;word-break:break-word;}
   .defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);}
   .defect .meta span{display:flex;align-items:center;gap:4px;}
@@ -108,6 +112,8 @@
   .seg-opt[data-v="In Progress"].active{background:var(--prog);border-color:var(--prog);}
   .seg-opt[data-v="Pending Part/Vendor"].active{background:var(--pend);border-color:var(--pend);}
   .seg-opt[data-v="Done"].active{background:var(--done);border-color:var(--done);}
+  .seg-opt[data-v="HK"].active{background:#0ea5e9;border-color:#0ea5e9;}
+  .seg-opt[data-v="ENG"].active{background:#f97316;border-color:#f97316;}
   .seg-opt[data-v="Low"].active{background:var(--p-low);border-color:var(--p-low);}
   .seg-opt[data-v="Medium"].active{background:var(--p-med);border-color:var(--p-med);}
   .seg-opt[data-v="High"].active{background:var(--p-high);border-color:var(--p-high);}
@@ -188,6 +194,11 @@
       <button class="chip" data-area="Public Area" onclick="setAreaFilter('Public Area')">🏛️ Public Area</button>
       <button class="chip" data-area="F&B" onclick="setAreaFilter('F&B')">🍽️ F&B</button>
     </div>
+    <div class="filters" id="catFilters">
+      <button class="chip active" data-cat="all" onclick="setCatFilter('all')">Semua Divisi</button>
+      <button class="chip" data-cat="HK" onclick="setCatFilter('HK')">🧹 Housekeeping</button>
+      <button class="chip" data-cat="ENG" onclick="setCatFilter('ENG')">🔧 Engineering</button>
+    </div>
     <div class="defect-list" id="defectList"></div>
   </div>
   <button class="fab" id="fab" onclick="openForm()">+</button>
@@ -207,6 +218,11 @@
         <div class="seg-opt" data-g="area" data-v="Public Area" onclick="pickSeg(this);onAreaChange()">🏛️ Public Area</div>
         <div class="seg-opt" data-g="area" data-v="F&B" onclick="pickSeg(this);onAreaChange()">🍽️ F&B</div>
         <div class="seg-opt" data-g="area" data-v="Other" onclick="pickSeg(this);onAreaChange()">📦 Other</div>
+      </div>
+      <label class="fld">Kategori Divisi</label>
+      <div class="seg" id="segCategory" style="grid-template-columns:1fr 1fr;">
+        <div class="seg-opt cat-opt" data-g="category" data-v="HK" onclick="pickSeg(this)">🧹 Housekeeping</div>
+        <div class="seg-opt cat-opt" data-g="category" data-v="ENG" onclick="pickSeg(this)">🔧 Engineering</div>
       </div>
       <label class="fld">Lokasi Spesifik</label>
       <select class="inp" id="fRoomSelect" style="display:none;" onchange="onRoomSelect()"><option value="">— Pilih No. Kamar —</option></select>
@@ -280,6 +296,7 @@ const TYPE_NAMES = {'SPRD':'Superior Double','SPRT':'Superior Twin','DLXD':'Delu
 
 let defects = [];
 let currentArea = 'all';
+let currentCat = 'all';
 let currentStatusFilter = null;
 let tempPhotos = {defect:[], progress:[], after:[]}; // each: array of {url} (existing) or {dataUrl, isNew}
 const MAX_PHOTOS = 10;
@@ -291,6 +308,23 @@ const statusShort = {'Open':'Open','In Progress':'Progress','Pending Part/Vendor
 const prioClass = {'Low':'p-low','Medium':'p-med','High':'p-high','Urgent':'p-urgent'};
 
 function canEdit(){ return currentUser && (currentUser.role==='admin' || currentUser.role==='editor'); }
+
+// Divisi user → menentukan kategori defect mana yang boleh di-UPDATE.
+// Email EHK → HK; email CE → ENG; sisanya (admin/HM/FBM) → ALL.
+function userDivision(){
+  if(!currentUser) return null;
+  const e = (currentUser.email||'').toLowerCase();
+  if(e.includes('ehk')) return 'HK';
+  if(e.includes('ce.')||e.startsWith('ce')) return 'ENG';
+  return 'ALL'; // admin (COO), HM Luxe, FBM, dll
+}
+// Boleh update/ubah status defect kategori tertentu?
+function canEditCategory(cat){
+  if(!canEdit()) return false;
+  const div = userDivision();
+  if(div==='ALL') return true;
+  return div === cat; // EHK hanya HK, CE hanya ENG
+}
 
 // ===== ROOM DROPDOWN =====
 function buildRoomDropdown(){
@@ -455,6 +489,8 @@ function openForm(){
   document.getElementById('fDateTarget').value='';
   document.querySelectorAll('.seg-opt').forEach(o=>o.classList.remove('active'));
   setSeg('area','Room'); setSeg('prio','Medium'); setSeg('status','Open');
+  const div=userDivision();
+  setSeg('category', div==='ENG'?'ENG':'HK'); // default sesuai divisi (ALL/HK→HK, ENG→ENG)
   onAreaChange();
   tempPhotos={defect:[],progress:[],after:[]};
   ['defect','progress','after'].forEach(renderPhotoGrid);
@@ -468,8 +504,45 @@ async function saveDefect(){
   const location=document.getElementById('fLocation').value.trim();
   if(!desc){ showToast('Deskripsi defect wajib diisi'); return; }
   if(!location){ showToast(getSeg('area')==='Room'?'Pilih nomor kamar dulu':'Lokasi wajib diisi'); return; }
+  const category=getSeg('category');
+  if(!category){ showToast('Pilih kategori divisi (HK/ENG) dulu'); return; }
   const editId=document.getElementById('editId').value;
   const id=editId || ('def_'+Date.now());
+
+  // Saat EDIT: cek apakah user berhak atas kategori defect ini
+  if(editId){
+    const orig=defects.find(x=>x.id===editId);
+    const origCat=orig?orig.category:category;
+    if(!canEditCategory(origCat)){ showToast('⛔ Hanya divisi '+(origCat==='HK'?'Housekeeping':'Engineering')+' yang bisa ubah defect ini'); return; }
+  }
+
+  // ===== CEK DUPLIKAT — defect aktif dengan lokasi + deskripsi sama =====
+  const norm = s => (s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const ACTIVE = ['Open','In Progress','Pending Part/Vendor'];
+  const curStatus = getSeg('status');
+  if(ACTIVE.includes(curStatus)){
+    const nLoc = norm(location), nDesc = norm(desc);
+    // Ambil data terbaru dari server (lokasi sama) agar tahu input orang lain yang baru saja masuk
+    let serverRows = [];
+    try{
+      const {data} = await supa.from('defects').select('id,location,description,status').eq('hotel',HOTEL).eq('location',location);
+      serverRows = data || [];
+    }catch(e){ serverRows = defects; } // fallback ke data lokal kalau koneksi gagal
+    const actives = serverRows.filter(d => d.id!==editId && ACTIVE.includes(d.status) && norm(d.location)===nLoc);
+    // 1) Persis sama (lokasi + deskripsi) → BLOK
+    const exact = actives.find(d => norm(d.description)===nDesc);
+    if(exact){
+      showToast('⛔ Defect ini sudah ada (aktif) di '+location+'. Tidak bisa dobel.');
+      return;
+    }
+    // 2) Lokasi sama, deskripsi mirip (mengandung) → KONFIRMASI
+    const similar = actives.find(d => norm(d.description).includes(nDesc) || nDesc.includes(norm(d.description)));
+    if(similar){
+      const ok = confirm('⚠️ Sudah ada defect aktif yang mirip di '+location+':\n\n"'+similar.description+'"\n\nYang akan Anda input:\n"'+desc+'"\n\nTetap lanjut simpan?');
+      if(!ok) return;
+    }
+  }
+
   document.getElementById('saveBtn').disabled=true;
   showLoading('Menyimpan & upload foto...');
   try{
@@ -485,7 +558,7 @@ async function saveDefect(){
       photoCols[type] = urls.length ? JSON.stringify(urls) : null;
     }
     const row={
-      id, hotel:HOTEL, area:getSeg('area'), location, description:desc,
+      id, hotel:HOTEL, area:getSeg('area'), category, location, description:desc,
       pic:document.getElementById('fPic').value.trim(),
       date_report:document.getElementById('fDateReport').value || null,
       date_target:document.getElementById('fDateTarget').value || null,
@@ -519,6 +592,7 @@ async function editDefect(id){
   document.getElementById('editId').value=d.id;
   document.querySelectorAll('.seg-opt').forEach(o=>o.classList.remove('active'));
   setSeg('area',d.area); setSeg('prio',d.priority); setSeg('status',d.status);
+  setSeg('category', d.category || 'HK');
   onAreaChange();
   if(d.area==='Room'){
     const m=(d.location||'').match(/(\d+)/);
@@ -543,7 +617,8 @@ async function editDefect(id){
 }
 
 async function deleteDefect(id){
-  if(!canEdit()){ showToast('Tidak ada akses'); return; }
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  if(!canEditCategory(d.category)){ showToast('⛔ Hanya divisi '+(d.category==='HK'?'Housekeeping':'Engineering')+' yang bisa hapus defect ini'); return; }
   if(!confirm('Hapus defect ini? Foto & data akan dihapus permanen.')) return;
   showLoading('Menghapus...');
   try{
@@ -558,8 +633,8 @@ async function deleteDefect(id){
 }
 
 async function cycleStatus(id){
-  if(!canEdit()){ showToast('Tidak ada akses'); return; }
   const d=defects.find(x=>x.id===id); if(!d) return;
+  if(!canEditCategory(d.category)){ showToast('⛔ Status defect '+(d.category==='HK'?'HK':'ENG')+' hanya bisa diubah divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
   const order=['Open','In Progress','Pending Part/Vendor','Done'];
   const next=order[(order.indexOf(d.status)+1)%order.length];
   showLoading('Update status...');
@@ -590,13 +665,13 @@ function renderStats(){
 function renderList(){
   let list=defects;
   if(currentArea!=='all') list=list.filter(d=>d.area===currentArea);
+  if(currentCat!=='all') list=list.filter(d=>d.category===currentCat);
   if(currentStatusFilter) list=list.filter(d=>d.status===currentStatusFilter);
   const cont=document.getElementById('defectList');
   if(list.length===0){
     cont.innerHTML=`<div class="empty-state"><div class="ic">📋</div><h3>Belum ada defect</h3><p>${defects.length===0?(canEdit()?'Tap tombol + untuk menambah defect pertama.':'Belum ada defect yang dilaporkan.'):'Tidak ada defect untuk filter ini.'}</p></div>`;
     return;
   }
-  const editable=canEdit();
   cont.innerHTML=list.map((d,i)=>{
     const photoCell=(val,label,type)=>{
       const arr=parsePhotos(val);
@@ -607,10 +682,19 @@ function renderList(){
       return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${label}</span></div>`;
     };
     const late=d.date_target && d.status!=='Done' && d.date_target<new Date().toISOString().split('T')[0];
+    const num=list.length - i; // nomor urut (terbaru = nomor tertinggi)
+    const catEditable = canEditCategory(d.category);
+    const catBadge = d.category
+      ? `<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>`
+      : '';
     return `<div class="defect" style="animation-delay:${i*0.03}s">
       <div class="defect-head" onclick="editDefect('${d.id}')">
         <div class="body">
-          <span class="area-tag">${areaIcon[d.area]||'📦'} ${d.area}</span>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap;">
+            <span class="def-num">#${num}</span>
+            <span class="area-tag">${areaIcon[d.area]||'📦'} ${d.area}</span>
+            ${catBadge}
+          </div>
           <div class="desc">${esc(d.description)}</div>
           <div class="meta">
             <span>📍 ${esc(d.location)}</span>
@@ -629,9 +713,9 @@ function renderList(){
         ${photoCell(d.photo_after,'After','after')}
       </div>
       <div class="defect-foot">
-        <button class="foot-btn" onclick="cycleStatus('${d.id}')" ${editable?'':'disabled'}>🔄 Status</button>
-        <button class="foot-btn" onclick="editDefect('${d.id}')">${editable?'✏️ Edit':'👁️ Lihat'}</button>
-        <button class="foot-btn danger" onclick="deleteDefect('${d.id}')" ${editable?'':'disabled'}>🗑️</button>
+        <button class="foot-btn" onclick="cycleStatus('${d.id}')" ${catEditable?'':'disabled'}>🔄 Status</button>
+        <button class="foot-btn" onclick="editDefect('${d.id}')">${catEditable?'✏️ Edit':'👁️ Lihat'}</button>
+        <button class="foot-btn danger" onclick="deleteDefect('${d.id}')" ${catEditable?'':'disabled'}>🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -639,6 +723,7 @@ function renderList(){
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fmtDate(s){ if(!s) return ''; const d=new Date(s+'T00:00:00'); return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
 function setAreaFilter(area){ currentArea=area; document.querySelectorAll('#areaFilters .chip').forEach(c=>c.classList.toggle('active',c.dataset.area===area)); renderList(); }
+function setCatFilter(cat){ currentCat=cat; document.querySelectorAll('#catFilters .chip').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat)); renderList(); }
 function toggleFilter(status){ currentStatusFilter=(currentStatusFilter===status)?null:status; document.querySelectorAll('.stat').forEach(s=>s.classList.toggle('active',s.dataset.f===currentStatusFilter)); renderList(); }
 let galleryPhotos=[], galleryIdx=0, galleryLabel='';
 function openGallery(photos, startIdx, label){
@@ -669,7 +754,7 @@ function waRecap(){
     msg+=`\n${areaIcon[area]} *${area.toUpperCase()}* (${items.length} aktif)\n`;
     items.forEach((d,i)=>{
       const st={'Open':'🔴','In Progress':'🟡','Pending Part/Vendor':'🟣','Done':'🟢'}[d.status];
-      msg+=`${i+1}. ${st} [${d.priority}] ${d.location} — ${d.description}`;
+      msg+=`${i+1}. ${st} ${d.category?('['+d.category+'] '):''}[${d.priority}] ${d.location} — ${d.description}`;
       if(d.pic) msg+=` (PIC: ${d.pic})`;
       if(d.date_target) msg+=` 🎯${fmtDate(d.date_target)}`;
       msg+=`\n`;
