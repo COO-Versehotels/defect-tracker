@@ -73,6 +73,8 @@
   .photo-strip .ph .ph-label{position:absolute;bottom:0;left:0;right:0;font-size:9px;font-weight:700;text-align:center;padding:3px;background:rgba(0,0,0,0.6);color:#fff;text-transform:uppercase;letter-spacing:0.4px;}
   .photo-strip .ph.empty .ph-icon{font-size:18px;opacity:0.3;}
   .photo-strip .ph.empty .ph-label{background:transparent;color:var(--muted2);position:static;}
+  .photo-strip .ph .ph-count{position:absolute;top:4px;right:4px;background:rgba(59,130,246,0.92);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;}
+  .gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.14);color:#fff;border:none;font-size:28px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center;line-height:1;}
   .defect-foot{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--bg2);}
   .foot-btn{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
   .foot-btn:active{transform:scale(0.96);}
@@ -110,17 +112,18 @@
   .seg-opt[data-v="Medium"].active{background:var(--p-med);border-color:var(--p-med);}
   .seg-opt[data-v="High"].active{background:var(--p-high);border-color:var(--p-high);}
   .seg-opt[data-v="Urgent"].active{background:var(--p-urgent);border-color:var(--p-urgent);}
-  .photo-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
-  .photo-cell{position:relative;aspect-ratio:1;}
-  .photo-up{width:100%;height:100%;border-radius:13px;border:1.5px dashed var(--line2);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;position:relative;overflow:hidden;transition:all .15s;}
-  .photo-up:active{transform:scale(0.96);}
-  .photo-up.filled{border-style:solid;border-color:var(--accent);}
-  .photo-up .up-ic{font-size:24px;opacity:0.5;pointer-events:none;}
-  .photo-up .up-tx{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;pointer-events:none;}
-  .photo-cell input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1;}
-  .photo-up img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}
-  .photo-cell .rm{position:absolute;top:5px;right:5px;width:26px;height:26px;border-radius:7px;background:rgba(0,0,0,0.7);color:white;border:none;font-size:14px;cursor:pointer;z-index:3;display:none;align-items:center;justify-content:center;}
-  .photo-cell.filled .rm{display:flex;}
+  .photo-stage{margin-bottom:16px;}
+  .stage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .stage-name{font-size:13px;font-weight:700;color:var(--text);}
+  .stage-count{font-size:11px;font-weight:600;color:var(--muted);background:var(--card);padding:3px 9px;border-radius:7px;border:1px solid var(--line);}
+  .photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+  .pg-item{position:relative;aspect-ratio:1;border-radius:11px;overflow:hidden;border:1.5px solid var(--accent);}
+  .pg-item img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pg-item .pg-rm{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:6px;background:rgba(0,0,0,0.7);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+  .pg-add{aspect-ratio:1;border-radius:11px;border:1.5px dashed var(--line2);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;color:var(--muted);}
+  .pg-add:active{transform:scale(0.94);}
+  .pg-add .pa-ic{font-size:20px;opacity:0.6;}
+  .pg-add .pa-tx{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
   .photo-up .tag{position:absolute;bottom:0;left:0;right:0;font-size:9px;font-weight:700;text-align:center;padding:3px;background:rgba(0,0,0,0.6);color:#fff;text-transform:uppercase;z-index:1;pointer-events:none;}
   .btn-primary{width:100%;padding:15px;border-radius:13px;border:none;background:linear-gradient(135deg,var(--accent),#1e40af);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;}
   .btn-primary:active{transform:scale(0.98);}
@@ -232,23 +235,21 @@
         <div class="seg-opt" data-g="status" data-v="Done" onclick="pickSeg(this)">Done</div>
       </div>
       <label class="fld">Dokumentasi Foto</label>
-      <div class="hint-txt">Foto dikompres otomatis & disimpan di server (aman, tidak hilang).</div>
-      <div class="photo-trio">
-        <div class="photo-cell">
-          <label class="photo-up" id="up-defect" for="file-defect"><span class="up-ic">📷</span><span class="up-tx">Defect</span><span class="tag">Defect</span></label>
-          <button class="rm" type="button" onclick="removePhoto(event,'defect')">✕</button>
-          <input id="file-defect" type="file" accept="image/*" onchange="handlePhoto(this,'defect')">
-        </div>
-        <div class="photo-cell">
-          <label class="photo-up" id="up-progress" for="file-progress"><span class="up-ic">📷</span><span class="up-tx">Progress</span><span class="tag">Progress</span></label>
-          <button class="rm" type="button" onclick="removePhoto(event,'progress')">✕</button>
-          <input id="file-progress" type="file" accept="image/*" onchange="handlePhoto(this,'progress')">
-        </div>
-        <div class="photo-cell">
-          <label class="photo-up" id="up-after" for="file-after"><span class="up-ic">📷</span><span class="up-tx">After</span><span class="tag">After</span></label>
-          <button class="rm" type="button" onclick="removePhoto(event,'after')">✕</button>
-          <input id="file-after" type="file" accept="image/*" onchange="handlePhoto(this,'after')">
-        </div>
+      <div class="hint-txt">Maks. 10 foto per tahap. Dikompres otomatis & disimpan di server.</div>
+      <div class="photo-stage">
+        <div class="stage-head"><span class="stage-name">📷 Defect</span><span class="stage-count" id="count-defect">0/10</span></div>
+        <div class="photo-grid" id="grid-defect"></div>
+        <input id="file-defect" type="file" accept="image/*" multiple onchange="handlePhoto(this,'defect')" style="display:none;">
+      </div>
+      <div class="photo-stage">
+        <div class="stage-head"><span class="stage-name">🔧 Progress</span><span class="stage-count" id="count-progress">0/10</span></div>
+        <div class="photo-grid" id="grid-progress"></div>
+        <input id="file-progress" type="file" accept="image/*" multiple onchange="handlePhoto(this,'progress')" style="display:none;">
+      </div>
+      <div class="photo-stage">
+        <div class="stage-head"><span class="stage-name">✅ After</span><span class="stage-count" id="count-after">0/10</span></div>
+        <div class="photo-grid" id="grid-after"></div>
+        <input id="file-after" type="file" accept="image/*" multiple onchange="handlePhoto(this,'after')" style="display:none;">
       </div>
       <button class="btn-primary" id="saveBtn" onclick="saveDefect()">💾 Simpan Defect</button>
       <button class="btn-ghost" onclick="closeForm()">Batal</button>
@@ -258,7 +259,9 @@
 
 <div class="viewer" id="viewer" onclick="closeViewer()">
   <button class="vclose" onclick="closeViewer()">✕</button>
-  <img id="viewerImg" src="" alt="">
+  <button class="gal-nav" id="galPrev" onclick="galleryNav(event,-1)" style="left:14px;">‹</button>
+  <img id="viewerImg" src="" alt="" onclick="event.stopPropagation()">
+  <button class="gal-nav" id="galNext" onclick="galleryNav(event,1)" style="right:14px;">›</button>
   <div class="vlabel" id="viewerLabel"></div>
 </div>
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="ltext" id="loadingText">Memuat...</div></div>
@@ -278,7 +281,8 @@ const TYPE_NAMES = {'SPRD':'Superior Double','SPRT':'Superior Twin','DLXD':'Delu
 let defects = [];
 let currentArea = 'all';
 let currentStatusFilter = null;
-let tempPhotos = {defect:null, progress:null, after:null};
+let tempPhotos = {defect:[], progress:[], after:[]}; // each: array of {url} (existing) or {dataUrl, isNew}
+const MAX_PHOTOS = 10;
 let currentUser = null;
 
 const areaIcon = {'Room':'🛏️','Public Area':'🏛️','F&B':'🍽️','Other':'📦'};
@@ -384,34 +388,52 @@ function dataUrlToBlob(dataUrl){
   return new Blob([arr],{type:mime});
 }
 async function handlePhoto(input, type){
-  const file=input.files[0]; if(!file) return;
-  showToast('Mengompres foto...');
-  const compressed=await compressImage(file);
-  if(!compressed){ showToast('File bukan gambar'); return; }
-  tempPhotos[type]={dataUrl:compressed, isNew:true};
-  renderPhotoUpload(type);
+  const files = Array.from(input.files||[]);
+  if(!files.length) return;
+  const room = MAX_PHOTOS - tempPhotos[type].length;
+  if(room <= 0){ showToast('Maksimal '+MAX_PHOTOS+' foto per tahap'); input.value=''; return; }
+  const toAdd = files.slice(0, room);
+  if(files.length > room) showToast('Hanya '+room+' foto ditambahkan (maks '+MAX_PHOTOS+')');
+  else showToast('Mengompres '+toAdd.length+' foto...');
+  for(const file of toAdd){
+    const compressed = await compressImage(file);
+    if(compressed) tempPhotos[type].push({dataUrl:compressed, isNew:true});
+  }
+  input.value='';
+  renderPhotoGrid(type);
 }
-function renderPhotoUpload(type){
-  const el=document.getElementById('up-'+type);
-  const cell=el.parentElement;
-  const existing=el.querySelector('img'); if(existing) existing.remove();
-  const p=tempPhotos[type];
-  if(p){
-    el.classList.add('filled');
-    cell.classList.add('filled');
-    const img=document.createElement('img');
-    img.src = (typeof p==='string') ? p : p.dataUrl;
-    el.insertBefore(img, el.firstChild);
-  } else { el.classList.remove('filled'); cell.classList.remove('filled'); }
+function renderPhotoGrid(type){
+  const grid=document.getElementById('grid-'+type);
+  const arr=tempPhotos[type];
+  document.getElementById('count-'+type).textContent = arr.length+'/'+MAX_PHOTOS;
+  let html = arr.map((p,idx)=>{
+    const src = p.url || p.dataUrl;
+    return `<div class="pg-item"><img src="${src}" alt=""><button class="pg-rm" type="button" onclick="removePhoto('${type}',${idx})">✕</button></div>`;
+  }).join('');
+  if(arr.length < MAX_PHOTOS){
+    html += `<div class="pg-add" onclick="document.getElementById('file-${type}').click()"><span class="pa-ic">＋</span><span class="pa-tx">Tambah</span></div>`;
+  }
+  grid.innerHTML = html;
 }
-function removePhoto(e,type){ e.preventDefault(); e.stopPropagation(); tempPhotos[type]=null; document.getElementById('file-'+type).value=''; renderPhotoUpload(type); }
-async function uploadPhoto(defectId, type, dataUrl){
+function removePhoto(type, idx){ tempPhotos[type].splice(idx,1); renderPhotoGrid(type); }
+async function uploadPhoto(defectId, type, dataUrl, seq){
   const blob=dataUrlToBlob(dataUrl);
-  const path=`${defectId}/${type}_${Date.now()}.jpg`;
+  const path=`${defectId}/${type}_${Date.now()}_${seq}.jpg`;
   const {error}=await supa.storage.from(BUCKET).upload(path, blob, {contentType:'image/jpeg', upsert:true});
   if(error) throw new Error('Upload foto gagal: '+error.message);
   const {data}=supa.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+// Normalisasi nilai DB (string lama / JSON array baru / null) → array URL
+function parsePhotos(val){
+  if(!val) return [];
+  if(Array.isArray(val)) return val;
+  if(typeof val==='string'){
+    const s=val.trim();
+    if(s.startsWith('[')){ try{ return JSON.parse(s); }catch(e){ return [s]; } }
+    return s ? [s] : [];
+  }
+  return [];
 }
 
 // ===== SEGMENTED =====
@@ -434,8 +456,8 @@ function openForm(){
   document.querySelectorAll('.seg-opt').forEach(o=>o.classList.remove('active'));
   setSeg('area','Room'); setSeg('prio','Medium'); setSeg('status','Open');
   onAreaChange();
-  tempPhotos={defect:null,progress:null,after:null};
-  ['defect','progress','after'].forEach(renderPhotoUpload);
+  tempPhotos={defect:[],progress:[],after:[]};
+  ['defect','progress','after'].forEach(renderPhotoGrid);
   document.getElementById('formModal').classList.add('show');
 }
 function closeForm(){ document.getElementById('formModal').classList.remove('show'); }
@@ -451,12 +473,16 @@ async function saveDefect(){
   document.getElementById('saveBtn').disabled=true;
   showLoading('Menyimpan & upload foto...');
   try{
-    const photoUrls={};
+    const photoCols={};
     for(const type of ['defect','progress','after']){
-      const p=tempPhotos[type];
-      if(!p){ photoUrls[type]=null; }
-      else if(typeof p==='string'){ photoUrls[type]=p; }
-      else if(p.isNew){ photoUrls[type]=await uploadPhoto(id,type,p.dataUrl); }
+      const arr=tempPhotos[type];
+      const urls=[];
+      let seq=0;
+      for(const p of arr){
+        if(p.url){ urls.push(p.url); }              // existing photo
+        else if(p.isNew && p.dataUrl){ urls.push(await uploadPhoto(id,type,p.dataUrl,seq++)); }
+      }
+      photoCols[type] = urls.length ? JSON.stringify(urls) : null;
     }
     const row={
       id, hotel:HOTEL, area:getSeg('area'), location, description:desc,
@@ -464,7 +490,7 @@ async function saveDefect(){
       date_report:document.getElementById('fDateReport').value || null,
       date_target:document.getElementById('fDateTarget').value || null,
       priority:getSeg('prio'), status:getSeg('status'),
-      photo_defect:photoUrls.defect, photo_progress:photoUrls.progress, photo_after:photoUrls.after
+      photo_defect:photoCols.defect, photo_progress:photoCols.progress, photo_after:photoCols.after
     };
     if(editId===''){ row.created_by=currentUser.email; }
     const {error}=await supa.from('defects').upsert(row);
@@ -484,8 +510,8 @@ async function saveDefect(){
 async function editDefect(id){
   const d=defects.find(x=>x.id===id); if(!d) return;
   if(!canEdit()){
-    const first=d.photo_defect||d.photo_progress||d.photo_after;
-    if(first){ document.getElementById('viewerImg').src=first; document.getElementById('viewerLabel').textContent=d.location+' — '+d.description; document.getElementById('viewer').classList.add('show'); }
+    const all=[...parsePhotos(d.photo_defect),...parsePhotos(d.photo_progress),...parsePhotos(d.photo_after)];
+    if(all.length){ openGallery(all, 0, d.location+' — '+d.description); }
     else showToast('Tidak ada foto');
     return;
   }
@@ -507,8 +533,12 @@ async function editDefect(id){
   document.getElementById('fPic').value=d.pic||'';
   document.getElementById('fDateReport').value=d.date_report||'';
   document.getElementById('fDateTarget').value=d.date_target||'';
-  tempPhotos={defect:d.photo_defect||null, progress:d.photo_progress||null, after:d.photo_after||null};
-  ['defect','progress','after'].forEach(renderPhotoUpload);
+  tempPhotos={
+    defect: parsePhotos(d.photo_defect).map(u=>({url:u})),
+    progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
+    after: parsePhotos(d.photo_after).map(u=>({url:u}))
+  };
+  ['defect','progress','after'].forEach(renderPhotoGrid);
   document.getElementById('formModal').classList.add('show');
 }
 
@@ -568,9 +598,14 @@ function renderList(){
   }
   const editable=canEdit();
   cont.innerHTML=list.map((d,i)=>{
-    const photoCell=(url,label,type)=> url
-      ? `<div class="ph" onclick="event.stopPropagation();viewPhoto('${d.id}','${type}','${label}')"><img src="${url}" alt="${label}"><span class="ph-label">${label}</span></div>`
-      : `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${label}</span></div>`;
+    const photoCell=(val,label,type)=>{
+      const arr=parsePhotos(val);
+      if(arr.length){
+        const more = arr.length>1 ? `<span class="ph-count">+${arr.length-1}</span>` : '';
+        return `<div class="ph" onclick="event.stopPropagation();openGallery(${JSON.stringify(arr).replace(/"/g,'&quot;')},0,'${label} — '+${JSON.stringify(d.location)})"><img src="${arr[0]}" alt="${label}">${more}<span class="ph-label">${label}</span></div>`;
+      }
+      return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${label}</span></div>`;
+    };
     const late=d.date_target && d.status!=='Done' && d.date_target<new Date().toISOString().split('T')[0];
     return `<div class="defect" style="animation-delay:${i*0.03}s">
       <div class="defect-head" onclick="editDefect('${d.id}')">
@@ -605,7 +640,22 @@ function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>'
 function fmtDate(s){ if(!s) return ''; const d=new Date(s+'T00:00:00'); return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
 function setAreaFilter(area){ currentArea=area; document.querySelectorAll('#areaFilters .chip').forEach(c=>c.classList.toggle('active',c.dataset.area===area)); renderList(); }
 function toggleFilter(status){ currentStatusFilter=(currentStatusFilter===status)?null:status; document.querySelectorAll('.stat').forEach(s=>s.classList.toggle('active',s.dataset.f===currentStatusFilter)); renderList(); }
-function viewPhoto(id,type,label){ const d=defects.find(x=>x.id===id); if(!d) return; const url=d['photo_'+type]; if(!url) return; document.getElementById('viewerImg').src=url; document.getElementById('viewerLabel').textContent=label+' — '+d.location; document.getElementById('viewer').classList.add('show'); }
+let galleryPhotos=[], galleryIdx=0, galleryLabel='';
+function openGallery(photos, startIdx, label){
+  galleryPhotos = Array.isArray(photos) ? photos : parsePhotos(photos);
+  galleryIdx = startIdx||0;
+  galleryLabel = label||'';
+  if(!galleryPhotos.length) return;
+  renderGallery();
+  document.getElementById('viewer').classList.add('show');
+}
+function renderGallery(){
+  document.getElementById('viewerImg').src = galleryPhotos[galleryIdx];
+  document.getElementById('viewerLabel').textContent = galleryLabel + '  ('+(galleryIdx+1)+'/'+galleryPhotos.length+')';
+  document.getElementById('galPrev').style.display = galleryPhotos.length>1 ? 'flex':'none';
+  document.getElementById('galNext').style.display = galleryPhotos.length>1 ? 'flex':'none';
+}
+function galleryNav(e, dir){ e.stopPropagation(); galleryIdx=(galleryIdx+dir+galleryPhotos.length)%galleryPhotos.length; renderGallery(); }
 function closeViewer(){ document.getElementById('viewer').classList.remove('show'); }
 
 function waRecap(){
