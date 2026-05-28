@@ -295,25 +295,33 @@
         <div class="seg-opt" data-g="ustatus" data-v="Done" onclick="updPickStatus(this)">Done</div>
       </div>
       <div id="updPendingWrap" style="display:none;">
-        <label class="fld">Alasan Pending <span style="color:var(--open);">*wajib</span></label>
+        <label class="fld">Keterangan / Alasan Pending <span style="color:var(--open);">*wajib</span></label>
         <textarea class="inp" id="updPendingReason" placeholder="Contoh: Tim overload, menunggu sparepart..."></textarea>
       </div>
 
-      <label class="fld">Target Selesai</label>
-      <input type="date" class="inp" id="updTarget">
+      <div id="updTargetWrap" style="display:none;">
+        <label class="fld">Target Selesai <span style="color:var(--open);">*wajib</span></label>
+        <input type="date" class="inp" id="updTarget">
+      </div>
 
-      <label class="fld">🔧 Foto Progress <span class="stage-count" id="updCountProgress" style="float:right;">0/10</span></label>
-      <div class="photo-grid" id="updGridProgress"></div>
-      <input id="updFileProgress" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'progress')" style="display:none;">
+      <div id="updProgressWrap" style="display:none;">
+        <label class="fld">🔧 Foto Progress <span class="stage-count" id="updCountProgress" style="float:right;">0/10</span></label>
+        <div class="photo-grid" id="updGridProgress"></div>
+        <input id="updFileProgress" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'progress')" style="display:none;">
+      </div>
 
-      <label class="fld" style="margin-top:18px;">✅ Foto After <span class="stage-count" id="updCountAfter" style="float:right;">0/10</span></label>
-      <div class="photo-grid" id="updGridAfter"></div>
-      <input id="updFileAfter" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'after')" style="display:none;">
+      <div id="updAfterWrap" style="display:none;">
+        <label class="fld" style="margin-top:18px;">✅ Foto After <span class="stage-count" id="updCountAfter" style="float:right;">0/10</span></label>
+        <div class="photo-grid" id="updGridAfter"></div>
+        <input id="updFileAfter" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'after')" style="display:none;">
+      </div>
 
       <div id="updDoneByWrap" style="display:none;margin-top:18px;">
         <label class="fld">Penanggung Jawab Penyelesaian <span style="color:var(--open);">*wajib</span></label>
         <input type="text" class="inp" id="updDoneBy" placeholder="Nama yang menyelesaikan (ENG/HK)">
       </div>
+
+      <div id="updDoneInfo" style="display:none;margin-top:14px;" class="done-banner">🟢 Tanggal selesai otomatis terisi tanggal hari ini saat disimpan.</div>
 
       <button class="btn-primary" id="updSaveBtn" onclick="saveUpdate()" style="margin-top:18px;">💾 Simpan Update</button>
       <button class="btn-ghost" onclick="closeUpdate()">Batal</button>
@@ -741,25 +749,36 @@ function openUpdateDefect(id){
   if(!canEditCategory(d.category)){ showToast('⛔ Defect '+d.category+' hanya bisa diupdate divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
   document.getElementById('updDefectId').value=id;
   document.getElementById('updInfo').innerHTML=`<div class="ui-loc">📍 ${esc(d.location)} <span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span></div><div class="ui-desc">${esc(d.description)}</div>`;
-  document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.toggle('active', o.dataset.v===d.status));
-  document.getElementById('updPendingWrap').style.display = d.status==='Pending'?'block':'none';
+  // status aktif: kalau masih Open, default belum ada pilihan (user harus pilih)
+  const curStatus = (d.status==='Open') ? '' : d.status;
+  document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.toggle('active', o.dataset.v===curStatus));
   document.getElementById('updPendingReason').value=d.pending_reason||'';
   document.getElementById('updTarget').value=d.date_target||'';
-  document.getElementById('updDoneByWrap').style.display = d.status==='Done'?'block':'none';
   document.getElementById('updDoneBy').value=d.done_by||'';
   updPhotos={
     progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
     after: parsePhotos(d.photo_after).map(u=>({url:u}))
   };
   updRenderPhotos();
+  updApplyStatusUI(); // tampilkan field sesuai status terpilih
   document.getElementById('updateModal').classList.add('show');
 }
 function closeUpdate(){ document.getElementById('updateModal').classList.remove('show'); }
 function updPickStatus(el){
   document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('updPendingWrap').style.display = el.dataset.v==='Pending'?'block':'none';
-  document.getElementById('updDoneByWrap').style.display = el.dataset.v==='Done'?'block':'none';
+  updApplyStatusUI();
+}
+// Tampilkan/sembunyikan field sesuai status terpilih
+function updApplyStatusUI(){
+  const s = document.querySelector('#updSegStatus .seg-opt.active')?.dataset.v || '';
+  const show = (id,cond)=>{ document.getElementById(id).style.display = cond?'block':'none'; };
+  show('updPendingWrap', s==='Pending');                 // Pending → alasan
+  show('updProgressWrap', s==='In Progress');            // In Progress → foto progress
+  show('updTargetWrap', s==='In Progress');              // In Progress → target wajib
+  show('updAfterWrap', s==='Done');                      // Done → foto after
+  show('updDoneByWrap', s==='Done');                     // Done → penanggung jawab
+  show('updDoneInfo', s==='Done');                       // Done → info tanggal otomatis
 }
 async function updHandlePhoto(input, type){
   const files=Array.from(input.files||[]); if(!files.length) return;
@@ -784,18 +803,23 @@ function updRemovePhoto(type,idx){ updPhotos[type].splice(idx,1); updRenderPhoto
 async function saveUpdate(){
   const id=document.getElementById('updDefectId').value;
   const d=defects.find(x=>x.id===id); if(!d) return;
-  const newStatus=document.querySelector('#updSegStatus .seg-opt.active')?.dataset.v||d.status;
+  const activeEl=document.querySelector('#updSegStatus .seg-opt.active');
+  if(!activeEl){ showToast('⚠️ Pilih status dulu (Progress/Pending/Done)'); return; }
+  const newStatus=activeEl.dataset.v;
   const pendingReason=document.getElementById('updPendingReason').value.trim();
   const doneBy=document.getElementById('updDoneBy').value.trim();
+  const targetVal=document.getElementById('updTarget').value;
+  const today=new Date().toISOString().split('T')[0];
 
   // ===== VALIDASI per status =====
-  if(newStatus==='Pending' && !pendingReason){ showToast('⚠️ Alasan Pending wajib diisi'); return; }
-  if(newStatus==='In Progress' && updPhotos.progress.length===0){
-    showToast('⚠️ Status In Progress wajib lampirkan Foto Progress'); return;
+  if(newStatus==='Pending' && !pendingReason){ showToast('⚠️ Keterangan/alasan Pending wajib diisi'); return; }
+  if(newStatus==='In Progress'){
+    if(updPhotos.progress.length===0){ showToast('⚠️ In Progress wajib lampirkan Foto Progress'); return; }
+    if(!targetVal){ showToast('⚠️ In Progress wajib isi Target Selesai'); return; }
   }
   if(newStatus==='Done'){
-    if(updPhotos.after.length===0){ showToast('⚠️ Status Done wajib lampirkan Foto After'); return; }
-    if(!doneBy){ showToast('⚠️ Status Done wajib isi nama penanggung jawab'); return; }
+    if(updPhotos.after.length===0){ showToast('⚠️ Done wajib lampirkan Foto After'); return; }
+    if(!doneBy){ showToast('⚠️ Done wajib isi nama penanggung jawab penyelesaian'); return; }
   }
 
   document.getElementById('updSaveBtn').disabled=true;
@@ -810,11 +834,13 @@ async function saveUpdate(){
       }
       cols[type]=urls.length?JSON.stringify(urls):null;
     }
+    // Done → target otomatis = tanggal submit (timpa lama)
+    const finalTarget = newStatus==='Done' ? today : (targetVal||null);
     const update={
       status:newStatus,
       pending_reason: newStatus==='Pending'?pendingReason:null,
       done_by: newStatus==='Done'?doneBy:null,
-      date_target: document.getElementById('updTarget').value||null,
+      date_target: finalTarget,
       photo_progress:cols.progress, photo_after:cols.after
     };
     const {error}=await supa.from('defects').update(update).eq('id',id);
