@@ -53,6 +53,15 @@
   .chip.active{background:var(--accent);border-color:var(--accent);color:white;}
   .defect-list{display:flex;flex-direction:column;gap:13px;}
   .defect{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:all .15s;animation:fadeUp .35s both;}
+  .report-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;animation:fadeUp .35s both;margin-bottom:14px;}
+  .report-head{padding:15px 16px;background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04));border-bottom:1px solid var(--line);cursor:pointer;}
+  .report-head .report-loc{font-size:16px;font-weight:700;margin:7px 0 6px;}
+  .report-head .report-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);}
+  .sub-defect{border-bottom:1px solid var(--line);}
+  .sub-defect:last-child{border-bottom:none;}
+  .sub-head{padding:13px 16px 8px;cursor:pointer;}
+  .sub-defect .desc{font-size:14px;font-weight:600;line-height:1.4;word-break:break-word;}
+  .sub-defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:5px;}
   @keyframes fadeUp{from{transform:translateY(12px);opacity:0;}to{transform:translateY(0);opacity:1;}}
   .defect-head{padding:15px 16px 12px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;}
   .defect-head .body{flex:1;min-width:0;}
@@ -147,6 +156,19 @@
   .form-section-title{font-size:13px;font-weight:800;color:var(--accent2);margin:22px 0 14px;padding-bottom:8px;border-bottom:1.5px solid var(--line);letter-spacing:0.3px;}
   .form-section-title:first-child{margin-top:0;}
   .opt-tag{font-weight:500;color:var(--muted2);text-transform:none;letter-spacing:0;}
+  .btn-add-defect{width:100%;padding:13px;border-radius:12px;border:1.5px dashed var(--accent);background:rgba(59,130,246,0.08);color:var(--accent2);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .btn-add-defect:active{transform:scale(0.98);}
+  .defect-item-card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:15px;margin-bottom:14px;position:relative;}
+  .defect-item-card .di-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .defect-item-card .di-num{font-size:13px;font-weight:800;color:var(--accent2);}
+  .defect-item-card .di-remove{background:rgba(239,68,68,0.15);color:var(--open);border:none;border-radius:8px;width:30px;height:30px;font-size:15px;cursor:pointer;}
+  .di-sub-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0;}
+  .di-photo-mini{border:1.5px dashed var(--line2);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;background:var(--bg2);transition:all .15s;}
+  .di-photo-mini:active{transform:scale(0.95);}
+  .di-photo-mini.has{border-style:solid;border-color:var(--accent);}
+  .di-photo-mini .dpm-ic{font-size:18px;}
+  .di-photo-mini .dpm-tx{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+  .di-photo-mini .dpm-cnt{font-size:10px;font-weight:800;color:var(--accent2);margin-top:2px;}
   .room-type-badge{font-size:11px;color:var(--accent2);font-weight:600;margin-top:-12px;margin-bottom:16px;display:none;}
   .loading-overlay{position:fixed;inset:0;z-index:700;background:rgba(13,21,32,0.7);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
   .loading-overlay.show{display:flex;}
@@ -216,9 +238,10 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="editId">
+      <input type="hidden" id="reportId">
 
-      <!-- SECTION 1: Klasifikasi -->
-      <div class="form-section-title">1. Klasifikasi</div>
+      <!-- HEADER: per-area (1x) -->
+      <div class="form-section-title">📋 Informasi Area</div>
       <label class="fld">Area</label>
       <div class="seg cols4" id="segArea">
         <div class="seg-opt" data-g="area" data-v="Room" onclick="pickSeg(this);onAreaChange()">🛏️ Room</div>
@@ -226,73 +249,21 @@
         <div class="seg-opt" data-g="area" data-v="F&B" onclick="pickSeg(this);onAreaChange()">🍽️ F&B</div>
         <div class="seg-opt" data-g="area" data-v="Other" onclick="pickSeg(this);onAreaChange()">📦 Other</div>
       </div>
-      <label class="fld">Kategori Divisi</label>
-      <div class="seg" id="segCategory" style="grid-template-columns:1fr 1fr;">
-        <div class="seg-opt cat-opt" data-g="category" data-v="HK" onclick="pickSeg(this)">🧹 Housekeeping</div>
-        <div class="seg-opt cat-opt" data-g="category" data-v="ENG" onclick="pickSeg(this)">🔧 Engineering</div>
-      </div>
       <label class="fld">Lokasi Spesifik</label>
       <select class="inp" id="fRoomSelect" style="display:none;" onchange="onRoomSelect()"><option value="">— Pilih No. Kamar —</option></select>
       <div class="room-type-badge" id="roomTypeBadge"></div>
       <input type="text" class="inp" id="fLocation" placeholder="Contoh: Lobby, Koridor lt.5, Restaurant...">
-
-      <!-- SECTION 2: Defect + Foto Dokumentasi -->
-      <div class="form-section-title">2. Defect & Dokumentasi</div>
-      <label class="fld">Keterangan Defect</label>
-      <textarea class="inp" id="fDesc" placeholder="Jelaskan kerusakan/masalah yang ditemukan..."></textarea>
-      <div class="photo-stage">
-        <div class="stage-head"><span class="stage-name">📷 Foto Dokumentasi (Defect)</span><span class="stage-count" id="count-defect">0/10</span></div>
-        <div class="photo-grid" id="grid-defect"></div>
-        <input id="file-defect" type="file" accept="image/*" multiple onchange="handlePhoto(this,'defect')" style="display:none;">
-      </div>
       <div class="row2">
-        <div><label class="fld">PIC</label><input type="text" class="inp" id="fPic" placeholder="Penanggung jawab"></div>
+        <div><label class="fld">PIC Area</label><input type="text" class="inp" id="fPic" placeholder="Penanggung jawab area"></div>
         <div><label class="fld">Tgl Lapor</label><input type="date" class="inp" id="fDateReport"></div>
       </div>
-      <label class="fld">Target Selesai</label>
-      <input type="date" class="inp" id="fDateTarget">
-      <label class="fld">Prioritas</label>
-      <div class="seg cols4" id="segPrio">
-        <div class="seg-opt" data-g="prio" data-v="Low" onclick="pickSeg(this)">Low</div>
-        <div class="seg-opt" data-g="prio" data-v="Medium" onclick="pickSeg(this)">Medium</div>
-        <div class="seg-opt" data-g="prio" data-v="High" onclick="pickSeg(this)">High</div>
-        <div class="seg-opt" data-g="prio" data-v="Urgent" onclick="pickSeg(this)">Urgent</div>
-      </div>
 
-      <!-- SECTION 3: Progress -->
-      <div class="form-section-title">3. Progress Perbaikan</div>
-      <label class="fld">Catatan Progress <span class="opt-tag">(opsional)</span></label>
-      <textarea class="inp" id="fProgressNote" placeholder="Catatan perkembangan perbaikan..."></textarea>
-      <div class="photo-stage">
-        <div class="stage-head"><span class="stage-name">🔧 Foto Progress</span><span class="stage-count" id="count-progress">0/10</span></div>
-        <div class="photo-grid" id="grid-progress"></div>
-        <input id="file-progress" type="file" accept="image/*" multiple onchange="handlePhoto(this,'progress')" style="display:none;">
-      </div>
+      <!-- DAFTAR DEFECT (multi) -->
+      <div class="form-section-title">🔧 Daftar Defect <span id="defectCounter" class="opt-tag"></span></div>
+      <div id="defectItems"></div>
+      <button class="btn-add-defect" onclick="addDefectItem()">＋ Tambah Defect</button>
 
-      <!-- SECTION 4: After -->
-      <div class="form-section-title">4. Hasil Akhir (After)</div>
-      <label class="fld">Catatan Hasil <span class="opt-tag">(opsional)</span></label>
-      <textarea class="inp" id="fAfterNote" placeholder="Catatan hasil perbaikan selesai..."></textarea>
-      <div class="photo-stage">
-        <div class="stage-head"><span class="stage-name">✅ Foto After</span><span class="stage-count" id="count-after">0/10</span></div>
-        <div class="photo-grid" id="grid-after"></div>
-        <input id="file-after" type="file" accept="image/*" multiple onchange="handlePhoto(this,'after')" style="display:none;">
-      </div>
-
-      <!-- SECTION 5: Status -->
-      <div class="form-section-title">5. Status</div>
-      <div class="seg" id="segStatus">
-        <div class="seg-opt" data-g="status" data-v="Open" onclick="pickSeg(this);onStatusChange()">Open</div>
-        <div class="seg-opt" data-g="status" data-v="In Progress" onclick="pickSeg(this);onStatusChange()">In Progress</div>
-        <div class="seg-opt" data-g="status" data-v="Pending" onclick="pickSeg(this);onStatusChange()">Pending</div>
-        <div class="seg-opt" data-g="status" data-v="Done" onclick="pickSeg(this);onStatusChange()">Done</div>
-      </div>
-      <div id="pendingReasonWrap" style="display:none;">
-        <label class="fld">Alasan Pending <span style="color:var(--open);">*wajib</span></label>
-        <textarea class="inp" id="fPendingReason" placeholder="Contoh: Tim overload, menunggu sparepart, menunggu jadwal vendor..."></textarea>
-      </div>
-
-      <button class="btn-primary" id="saveBtn" onclick="saveDefect()">💾 Simpan Defect</button>
+      <button class="btn-primary" id="saveBtn" onclick="saveDefect()" style="margin-top:18px;">💾 Simpan Laporan</button>
       <button class="btn-ghost" onclick="closeForm()">Batal</button>
     </div>
   </div>
@@ -323,7 +294,9 @@ let defects = [];
 let currentArea = 'all';
 let currentCat = 'all';
 let currentStatusFilter = null;
-let tempPhotos = {defect:[], progress:[], after:[]}; // each: array of {url} (existing) or {dataUrl, isNew}
+let formDefects = []; // working list of defect items in the form
+// each item: {key, category, description, priority, status, dateTarget, pendingReason,
+//             progressNote, afterNote, photos:{defect:[],progress:[],after:[]}, existingId}
 const MAX_PHOTOS = 10;
 let currentUser = null;
 
@@ -382,10 +355,6 @@ function onRoomSelect(){
     badge.textContent = '🛏️ Tipe: ' + (TYPE_NAMES[t]||t);
     badge.style.display='block';
   } else { badge.style.display='none'; }
-}
-function onStatusChange(){
-  const isPending = getSeg('status')==='Pending';
-  document.getElementById('pendingReasonWrap').style.display = isPending ? 'block' : 'none';
 }
 
 // ===== LOGIN =====
@@ -450,35 +419,24 @@ function dataUrlToBlob(dataUrl){
   for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
   return new Blob([arr],{type:mime});
 }
-async function handlePhoto(input, type){
+// ===== PHOTO HELPERS (per defect item) =====
+async function handlePhoto(input, key, type){
+  const item = formDefects.find(d=>d.key===key); if(!item) return;
   const files = Array.from(input.files||[]);
   if(!files.length) return;
-  const room = MAX_PHOTOS - tempPhotos[type].length;
+  const room = MAX_PHOTOS - item.photos[type].length;
   if(room <= 0){ showToast('Maksimal '+MAX_PHOTOS+' foto per tahap'); input.value=''; return; }
   const toAdd = files.slice(0, room);
   if(files.length > room) showToast('Hanya '+room+' foto ditambahkan (maks '+MAX_PHOTOS+')');
   else showToast('Mengompres '+toAdd.length+' foto...');
   for(const file of toAdd){
     const compressed = await compressImage(file);
-    if(compressed) tempPhotos[type].push({dataUrl:compressed, isNew:true});
+    if(compressed) item.photos[type].push({dataUrl:compressed, isNew:true});
   }
   input.value='';
-  renderPhotoGrid(type);
+  renderDefectItems();
+  openPhotoStage(key, type); // tetap di tahap yang sama
 }
-function renderPhotoGrid(type){
-  const grid=document.getElementById('grid-'+type);
-  const arr=tempPhotos[type];
-  document.getElementById('count-'+type).textContent = arr.length+'/'+MAX_PHOTOS;
-  let html = arr.map((p,idx)=>{
-    const src = p.url || p.dataUrl;
-    return `<div class="pg-item"><img src="${src}" alt=""><button class="pg-rm" type="button" onclick="removePhoto('${type}',${idx})">✕</button></div>`;
-  }).join('');
-  if(arr.length < MAX_PHOTOS){
-    html += `<div class="pg-add" onclick="document.getElementById('file-${type}').click()"><span class="pa-ic">＋</span><span class="pa-tx">Tambah</span></div>`;
-  }
-  grid.innerHTML = html;
-}
-function removePhoto(type, idx){ tempPhotos[type].splice(idx,1); renderPhotoGrid(type); }
 async function uploadPhoto(defectId, type, dataUrl, seq){
   const blob=dataUrlToBlob(dataUrl);
   const path=`${defectId}/${type}_${Date.now()}_${seq}.jpg`;
@@ -487,7 +445,6 @@ async function uploadPhoto(defectId, type, dataUrl, seq){
   const {data}=supa.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
-// Normalisasi nilai DB (string lama / JSON array baru / null) → array URL
 function parsePhotos(val){
   if(!val) return [];
   if(Array.isArray(val)) return val;
@@ -499,122 +456,160 @@ function parsePhotos(val){
   return [];
 }
 
-// ===== SEGMENTED =====
+// ===== SEGMENTED (header area only) =====
 function pickSeg(el){ const g=el.dataset.g; document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.remove('active')); el.classList.add('active'); }
 function getSeg(g){ const a=document.querySelector(`.seg-opt[data-g="${g}"].active`); return a?a.dataset.v:''; }
 function setSeg(g,v){ document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.toggle('active', o.dataset.v===v)); }
 
+// ===== MULTI-DEFECT ITEMS =====
+let defectKeyCounter = 0;
+function newDefectItem(){
+  const div=userDivision();
+  return {
+    key: 'k'+(++defectKeyCounter),
+    category: div==='ENG'?'ENG':'HK',
+    description:'', priority:'Medium', status:'Open',
+    dateTarget:'', pendingReason:'', progressNote:'', afterNote:'',
+    photos:{defect:[],progress:[],after:[]}, existingId:null
+  };
+}
+function addDefectItem(){
+  formDefects.push(newDefectItem());
+  renderDefectItems();
+  // scroll ke item terakhir
+  setTimeout(()=>{ const items=document.querySelectorAll('.defect-item-card'); if(items.length) items[items.length-1].scrollIntoView({behavior:'smooth',block:'center'}); },100);
+}
+function removeDefectItem(key){
+  if(formDefects.length<=1){ showToast('Minimal 1 defect'); return; }
+  if(!confirm('Hapus item defect ini dari form?')) return;
+  formDefects = formDefects.filter(d=>d.key!==key);
+  renderDefectItems();
+}
+// Update field dari input
+function updField(key, field, val){ const d=formDefects.find(x=>x.key===key); if(d){ d[field]=val; } }
+function pickItemSeg(key, group, val){
+  const d=formDefects.find(x=>x.key===key); if(!d) return;
+  d[group]=val;
+  if(group==='status') renderDefectItems(); // refresh untuk tampilkan/sembunyikan alasan pending
+  else {
+    // update visual saja tanpa re-render penuh (biar tidak kehilangan fokus)
+    document.querySelectorAll(`[data-itemseg="${key}-${group}"] .seg-opt`).forEach(o=>o.classList.toggle('active', o.dataset.v===val));
+  }
+}
+function removeItemPhoto(key, type, idx){ const d=formDefects.find(x=>x.key===key); if(d){ d.photos[type].splice(idx,1); renderDefectItems(); } }
+function openPhotoStage(key, type){ const inp=document.getElementById(`file-${key}-${type}`); if(inp) inp.click(); }
+
+const STAGES=[{t:'defect',ic:'📷',l:'Defect'},{t:'progress',ic:'🔧',l:'Progress'},{t:'after',ic:'✅',l:'After'}];
+function renderDefectItems(){
+  const cont=document.getElementById('defectItems');
+  document.getElementById('defectCounter').textContent = '('+formDefects.length+' defect)';
+  cont.innerHTML = formDefects.map((d,i)=>{
+    const photoStages = STAGES.map(s=>{
+      const arr=d.photos[s.t];
+      const thumbs = arr.map((p,idx)=>`<div class="pg-item"><img src="${p.url||p.dataUrl}" alt=""><button class="pg-rm" type="button" onclick="removeItemPhoto('${d.key}','${s.t}',${idx})">✕</button></div>`).join('');
+      const addBtn = arr.length<MAX_PHOTOS ? `<div class="pg-add" onclick="openPhotoStage('${d.key}','${s.t}')"><span class="pa-ic">＋</span><span class="pa-tx">${s.l}</span></div>` : '';
+      return `<div style="margin-bottom:8px;">
+        <div class="stage-head"><span class="stage-name">${s.ic} ${s.l}</span><span class="stage-count">${arr.length}/${MAX_PHOTOS}</span></div>
+        <div class="photo-grid">${thumbs}${addBtn}</div>
+        <input id="file-${d.key}-${s.t}" type="file" accept="image/*" multiple onchange="handlePhoto(this,'${d.key}','${s.t}')" style="display:none;">
+      </div>`;
+    }).join('');
+    const segHtml=(group,opts)=>`<div class="seg ${opts.length>2?'cols4':''}" data-itemseg="${d.key}-${group}" style="${opts.length===2?'grid-template-columns:1fr 1fr;':''}">`+
+      opts.map(o=>`<div class="seg-opt ${d[group]===o.v?'active':''}" data-v="${o.v}" onclick="pickItemSeg('${d.key}','${group}','${o.v}')">${o.l}</div>`).join('')+`</div>`;
+    return `<div class="defect-item-card">
+      <div class="di-head">
+        <span class="di-num">Defect #${i+1}</span>
+        <button class="di-remove" onclick="removeDefectItem('${d.key}')">🗑️</button>
+      </div>
+      <label class="fld">Kategori Divisi</label>
+      ${segHtml('category',[{v:'HK',l:'🧹 Housekeeping'},{v:'ENG',l:'🔧 Engineering'}])}
+      <label class="fld">Keterangan Defect</label>
+      <textarea class="inp" placeholder="Jelaskan kerusakan..." oninput="updField('${d.key}','description',this.value)">${esc(d.description)}</textarea>
+      <label class="fld">Prioritas</label>
+      ${segHtml('priority',[{v:'Low',l:'Low'},{v:'Medium',l:'Medium'},{v:'High',l:'High'},{v:'Urgent',l:'Urgent'}])}
+      <label class="fld">Dokumentasi Foto <span class="opt-tag">(maks 10/tahap)</span></label>
+      ${photoStages}
+      <label class="fld">Target Selesai <span class="opt-tag">(boleh diisi nanti oleh dept)</span></label>
+      <input type="date" class="inp" value="${d.dateTarget||''}" onchange="updField('${d.key}','dateTarget',this.value)">
+      <label class="fld">Status</label>
+      ${segHtml('status',[{v:'Open',l:'Open'},{v:'In Progress',l:'Progress'},{v:'Pending',l:'Pending'},{v:'Done',l:'Done'}])}
+      ${d.status==='Pending'?`<label class="fld">Alasan Pending <span style="color:var(--open);">*wajib</span></label>
+        <textarea class="inp" placeholder="Contoh: Tim overload, menunggu sparepart..." oninput="updField('${d.key}','pendingReason',this.value)">${esc(d.pendingReason)}</textarea>`:''}
+    </div>`;
+  }).join('');
+}
+
 // ===== FORM =====
 function openForm(){
   if(!canEdit()){ showToast('Anda hanya memiliki akses lihat'); return; }
-  document.getElementById('formTitle').textContent='Defect Baru';
+  document.getElementById('formTitle').textContent='Laporan Defect Baru';
   document.getElementById('editId').value='';
+  document.getElementById('reportId').value='rpt_'+Date.now();
   document.getElementById('fLocation').value='';
   document.getElementById('fRoomSelect').value='';
   document.getElementById('roomTypeBadge').style.display='none';
-  document.getElementById('fDesc').value='';
-  document.getElementById('fProgressNote').value='';
-  document.getElementById('fAfterNote').value='';
-  document.getElementById('fPendingReason').value='';
-  document.getElementById('pendingReasonWrap').style.display='none';
   document.getElementById('fPic').value='';
   document.getElementById('fDateReport').value=new Date().toISOString().split('T')[0];
-  document.getElementById('fDateTarget').value='';
-  document.querySelectorAll('.seg-opt').forEach(o=>o.classList.remove('active'));
-  setSeg('area','Room'); setSeg('prio','Medium'); setSeg('status','Open');
-  const div=userDivision();
-  setSeg('category', div==='ENG'?'ENG':'HK'); // default sesuai divisi (ALL/HK→HK, ENG→ENG)
+  document.querySelectorAll('#segArea .seg-opt').forEach(o=>o.classList.remove('active'));
+  setSeg('area','Room');
   onAreaChange();
-  tempPhotos={defect:[],progress:[],after:[]};
-  ['defect','progress','after'].forEach(renderPhotoGrid);
+  formDefects=[newDefectItem()]; // mulai dengan 1 defect
+  renderDefectItems();
   document.getElementById('formModal').classList.add('show');
 }
 function closeForm(){ document.getElementById('formModal').classList.remove('show'); }
 
 async function saveDefect(){
   if(!canEdit()){ showToast('Tidak ada akses'); return; }
-  const desc=document.getElementById('fDesc').value.trim();
+  const area=getSeg('area');
   const location=document.getElementById('fLocation').value.trim();
-  if(!desc){ showToast('Deskripsi defect wajib diisi'); return; }
-  if(!location){ showToast(getSeg('area')==='Room'?'Pilih nomor kamar dulu':'Lokasi wajib diisi'); return; }
-  const category=getSeg('category');
-  if(!category){ showToast('Pilih kategori divisi (HK/ENG) dulu'); return; }
-  // Alasan wajib kalau status Pending
-  const pendingReason=document.getElementById('fPendingReason').value.trim();
-  if(getSeg('status')==='Pending' && !pendingReason){
-    showToast('⚠️ Alasan Pending wajib diisi');
-    document.getElementById('fPendingReason').focus();
-    return;
-  }
-  const editId=document.getElementById('editId').value;
-  const id=editId || ('def_'+Date.now());
+  const pic=document.getElementById('fPic').value.trim();
+  const dateReport=document.getElementById('fDateReport').value||null;
+  const reportId=document.getElementById('reportId').value;
+  if(!area){ showToast('Pilih area dulu'); return; }
+  if(!location){ showToast(area==='Room'?'Pilih nomor kamar dulu':'Lokasi wajib diisi'); return; }
+  if(formDefects.length===0){ showToast('Tambah minimal 1 defect'); return; }
 
-  // Saat EDIT: cek apakah user berhak atas kategori defect ini
-  if(editId){
-    const orig=defects.find(x=>x.id===editId);
-    const origCat=orig?orig.category:category;
-    if(!canEditCategory(origCat)){ showToast('⛔ Hanya divisi '+(origCat==='HK'?'Housekeeping':'Engineering')+' yang bisa ubah defect ini'); return; }
-  }
-
-  // ===== CEK DUPLIKAT — defect aktif dengan lokasi + deskripsi sama =====
-  const norm = s => (s||'').toLowerCase().replace(/\s+/g,' ').trim();
-  const ACTIVE = ['Open','In Progress','Pending'];
-  const curStatus = getSeg('status');
-  if(ACTIVE.includes(curStatus)){
-    const nLoc = norm(location), nDesc = norm(desc);
-    // Ambil data terbaru dari server (lokasi sama) agar tahu input orang lain yang baru saja masuk
-    let serverRows = [];
-    try{
-      const {data} = await supa.from('defects').select('id,location,description,status').eq('hotel',HOTEL).eq('location',location);
-      serverRows = data || [];
-    }catch(e){ serverRows = defects; } // fallback ke data lokal kalau koneksi gagal
-    const actives = serverRows.filter(d => d.id!==editId && ACTIVE.includes(d.status) && norm(d.location)===nLoc);
-    // 1) Persis sama (lokasi + deskripsi) → BLOK
-    const exact = actives.find(d => norm(d.description)===nDesc);
-    if(exact){
-      showToast('⛔ Defect ini sudah ada (aktif) di '+location+'. Tidak bisa dobel.');
-      return;
-    }
-    // 2) Lokasi sama, deskripsi mirip (mengandung) → KONFIRMASI
-    const similar = actives.find(d => norm(d.description).includes(nDesc) || nDesc.includes(norm(d.description)));
-    if(similar){
-      const ok = confirm('⚠️ Sudah ada defect aktif yang mirip di '+location+':\n\n"'+similar.description+'"\n\nYang akan Anda input:\n"'+desc+'"\n\nTetap lanjut simpan?');
-      if(!ok) return;
-    }
+  // Validasi tiap defect item
+  for(let i=0;i<formDefects.length;i++){
+    const d=formDefects[i];
+    if(!d.description.trim()){ showToast('Defect #'+(i+1)+': keterangan wajib diisi'); return; }
+    if(!d.category){ showToast('Defect #'+(i+1)+': pilih kategori HK/ENG'); return; }
+    if(d.status==='Pending' && !d.pendingReason.trim()){ showToast('Defect #'+(i+1)+': alasan Pending wajib diisi'); return; }
+    // Cek izin kategori saat EDIT defect existing
+    if(d.existingId && !canEditCategory(d.category)){ showToast('Defect #'+(i+1)+': hanya divisi '+(d.category==='HK'?'HK':'ENG')+' yang bisa ubah'); return; }
   }
 
   document.getElementById('saveBtn').disabled=true;
   showLoading('Menyimpan & upload foto...');
   try{
-    const photoCols={};
-    for(const type of ['defect','progress','after']){
-      const arr=tempPhotos[type];
-      const urls=[];
-      let seq=0;
-      for(const p of arr){
-        if(p.url){ urls.push(p.url); }              // existing photo
-        else if(p.isNew && p.dataUrl){ urls.push(await uploadPhoto(id,type,p.dataUrl,seq++)); }
+    for(const d of formDefects){
+      const id = d.existingId || ('def_'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+      // Upload foto
+      const photoCols={};
+      for(const type of ['defect','progress','after']){
+        const urls=[]; let seq=0;
+        for(const p of d.photos[type]){
+          if(p.url) urls.push(p.url);
+          else if(p.isNew && p.dataUrl) urls.push(await uploadPhoto(id,type,p.dataUrl,seq++));
+        }
+        photoCols[type]=urls.length?JSON.stringify(urls):null;
       }
-      photoCols[type] = urls.length ? JSON.stringify(urls) : null;
+      const row={
+        id, report_id:reportId, hotel:HOTEL, area, location, pic, date_report:dateReport,
+        category:d.category, description:d.description.trim(), priority:d.priority, status:d.status,
+        date_target:d.dateTarget||null,
+        pending_reason: d.status==='Pending'?d.pendingReason.trim():null,
+        photo_defect:photoCols.defect, photo_progress:photoCols.progress, photo_after:photoCols.after
+      };
+      if(!d.existingId) row.created_by=currentUser.email;
+      const {error}=await supa.from('defects').upsert(row);
+      if(error) throw new Error(error.message);
     }
-    const row={
-      id, hotel:HOTEL, area:getSeg('area'), category, location, description:desc,
-      pic:document.getElementById('fPic').value.trim(),
-      date_report:document.getElementById('fDateReport').value || null,
-      date_target:document.getElementById('fDateTarget').value || null,
-      priority:getSeg('prio'), status:getSeg('status'),
-      progress_note:document.getElementById('fProgressNote').value.trim() || null,
-      after_note:document.getElementById('fAfterNote').value.trim() || null,
-      pending_reason: getSeg('status')==='Pending' ? pendingReason : null,
-      photo_defect:photoCols.defect, photo_progress:photoCols.progress, photo_after:photoCols.after
-    };
-    if(editId===''){ row.created_by=currentUser.email; }
-    const {error}=await supa.from('defects').upsert(row);
-    if(error) throw new Error(error.message);
     hideLoading();
     document.getElementById('saveBtn').disabled=false;
     closeForm();
-    showToast(editId?'✅ Defect diperbarui':'✅ Defect tersimpan');
+    showToast('✅ Laporan tersimpan ('+formDefects.length+' defect)');
     await loadDefects();
   }catch(e){
     hideLoading();
@@ -623,6 +618,7 @@ async function saveDefect(){
   }
 }
 
+// Edit: buka 1 laporan (semua defect dengan report_id sama) ATAU 1 defect tunggal
 async function editDefect(id){
   const d=defects.find(x=>x.id===id); if(!d) return;
   if(!canEdit()){
@@ -631,35 +627,37 @@ async function editDefect(id){
     else showToast('Tidak ada foto');
     return;
   }
-  document.getElementById('formTitle').textContent='Edit Defect';
+  // Ambil semua defect dalam laporan yang sama (report_id sama, atau cuma defect ini kalau tidak ada report_id)
+  const group = d.report_id ? defects.filter(x=>x.report_id===d.report_id) : [d];
+  document.getElementById('formTitle').textContent='Edit Laporan';
   document.getElementById('editId').value=d.id;
-  document.querySelectorAll('.seg-opt').forEach(o=>o.classList.remove('active'));
-  setSeg('area',d.area); setSeg('prio',d.priority); setSeg('status',d.status);
-  setSeg('category', d.category || 'HK');
+  document.getElementById('reportId').value=d.report_id||('rpt_'+Date.now());
+  document.querySelectorAll('#segArea .seg-opt').forEach(o=>o.classList.remove('active'));
+  setSeg('area',d.area);
   onAreaChange();
   if(d.area==='Room'){
-    const m=(d.location||'').match(/(\d+)/);
-    const rn=m?m[1]:'';
-    document.getElementById('fRoomSelect').value=rn;
-    onRoomSelect();
+    const m=(d.location||'').match(/(\d+)/); const rn=m?m[1]:'';
+    document.getElementById('fRoomSelect').value=rn; onRoomSelect();
     document.getElementById('fLocation').value=d.location||'';
-  } else {
-    document.getElementById('fLocation').value=d.location||'';
-  }
-  document.getElementById('fDesc').value=d.description||'';
-  document.getElementById('fProgressNote').value=d.progress_note||'';
-  document.getElementById('fAfterNote').value=d.after_note||'';
-  document.getElementById('fPendingReason').value=d.pending_reason||'';
+  } else { document.getElementById('fLocation').value=d.location||''; }
   document.getElementById('fPic').value=d.pic||'';
   document.getElementById('fDateReport').value=d.date_report||'';
-  document.getElementById('fDateTarget').value=d.date_target||'';
-  onStatusChange();
-  tempPhotos={
-    defect: parsePhotos(d.photo_defect).map(u=>({url:u})),
-    progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
-    after: parsePhotos(d.photo_after).map(u=>({url:u}))
-  };
-  ['defect','progress','after'].forEach(renderPhotoGrid);
+  // Muat semua defect item dari grup
+  formDefects = group.map(g=>({
+    key:'k'+(++defectKeyCounter),
+    category:g.category||'HK', description:g.description||'', priority:g.priority||'Medium',
+    status:(g.status==='Pending Part/Vendor'?'Pending':g.status)||'Open',
+    dateTarget:g.date_target||'', pendingReason:g.pending_reason||'',
+    progressNote:g.progress_note||'', afterNote:g.after_note||'',
+    photos:{
+      defect:parsePhotos(g.photo_defect).map(u=>({url:u})),
+      progress:parsePhotos(g.photo_progress).map(u=>({url:u})),
+      after:parsePhotos(g.photo_after).map(u=>({url:u}))
+    },
+    existingId:g.id
+  }));
+  if(formDefects.length===0) formDefects=[newDefectItem()];
+  renderDefectItems();
   document.getElementById('formModal').classList.add('show');
 }
 
@@ -728,55 +726,74 @@ function renderList(){
   if(currentStatusFilter) list=list.filter(d=>d.status===currentStatusFilter);
   const cont=document.getElementById('defectList');
   if(list.length===0){
-    cont.innerHTML=`<div class="empty-state"><div class="ic">📋</div><h3>Belum ada defect</h3><p>${defects.length===0?(canEdit()?'Tap tombol + untuk menambah defect pertama.':'Belum ada defect yang dilaporkan.'):'Tidak ada defect untuk filter ini.'}</p></div>`;
+    cont.innerHTML=`<div class="empty-state"><div class="ic">📋</div><h3>Belum ada defect</h3><p>${defects.length===0?(canEdit()?'Tap tombol + untuk menambah laporan pertama.':'Belum ada defect yang dilaporkan.'):'Tidak ada defect untuk filter ini.'}</p></div>`;
     return;
   }
-  cont.innerHTML=list.map((d,i)=>{
-    const photoCell=(val,label,type)=>{
-      const arr=parsePhotos(val);
-      if(arr.length){
-        const more = arr.length>1 ? `<span class="ph-count">+${arr.length-1}</span>` : '';
-        return `<div class="ph" onclick="event.stopPropagation();openGallery(${JSON.stringify(arr).replace(/"/g,'&quot;')},0,'${label} — '+${JSON.stringify(d.location)})"><img src="${arr[0]}" alt="${label}">${more}<span class="ph-label">${label}</span></div>`;
-      }
-      return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${label}</span></div>`;
-    };
-    const late=d.date_target && d.status!=='Done' && d.date_target<new Date().toISOString().split('T')[0];
-    const num=list.length - i; // nomor urut (terbaru = nomor tertinggi)
-    const catEditable = canEditCategory(d.category);
-    const catBadge = d.category
-      ? `<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>`
-      : '';
-    return `<div class="defect" style="animation-delay:${i*0.03}s">
-      <div class="defect-head" onclick="editDefect('${d.id}')">
-        <div class="body">
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap;">
-            <span class="def-num">#${num}</span>
-            <span class="area-tag">${areaIcon[d.area]||'📦'} ${d.area}</span>
-            ${catBadge}
-          </div>
-          <div class="desc">${esc(d.description)}</div>
-          <div class="meta">
-            <span>📍 ${esc(d.location)}</span>
-            ${d.pic?`<span>👤 ${esc(d.pic)}</span>`:''}
-            ${d.date_target?`<span style="${late?'color:var(--open);font-weight:700;':''}">🎯 ${fmtDate(d.date_target)}${late?' ⚠️':''}</span>`:''}
+  // Kelompokkan per report_id (atau per id kalau tidak ada report_id)
+  const groups={};
+  const order=[];
+  list.forEach(d=>{
+    const gid=d.report_id||d.id;
+    if(!groups[gid]){ groups[gid]=[]; order.push(gid); }
+    groups[gid].push(d);
+  });
+
+  const today=new Date().toISOString().split('T')[0];
+  const photoCell=(d,val,label,type)=>{
+    const arr=parsePhotos(val);
+    if(arr.length){
+      const more = arr.length>1 ? `<span class="ph-count">+${arr.length-1}</span>` : '';
+      return `<div class="ph" onclick="event.stopPropagation();openGallery(${JSON.stringify(arr).replace(/"/g,'&quot;')},0,'${label} — '+${JSON.stringify(d.location)})"><img src="${arr[0]}" alt="${label}">${more}<span class="ph-label">${label}</span></div>`;
+    }
+    return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${label}</span></div>`;
+  };
+
+  cont.innerHTML = order.map((gid,gi)=>{
+    const items=groups[gid];
+    const head=items[0]; // area/lokasi/pic sama untuk seluruh grup
+    const reportNum=order.length - gi;
+    const defectsHtml = items.map((d,di)=>{
+      const late=d.date_target && d.status!=='Done' && d.date_target<today;
+      const catEditable=canEditCategory(d.category);
+      const catBadge=d.category?`<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>`:'';
+      return `<div class="sub-defect">
+        <div class="sub-head" onclick="editDefect('${d.id}')">
+          <div class="sub-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap;">
+              <span class="def-num">${di+1}.</span>${catBadge}
+              <span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
+              <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+            </div>
+            <div class="desc">${esc(d.description)}</div>
+            ${d.date_target?`<div class="meta"><span style="${late?'color:var(--open);font-weight:700;':''}">🎯 Target: ${fmtDate(d.date_target)}${late?' ⚠️ Telat':''}</span></div>`:'<div class="meta"><span style="color:var(--muted2);">🎯 Target belum diisi</span></div>'}
           </div>
         </div>
-        <div class="right">
-          <span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
-          <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+        ${d.status==='Pending' && d.pending_reason ? `<div class="pending-banner">🟣 <b>Pending:</b> ${esc(d.pending_reason)}</div>` : ''}
+        <div class="photo-strip">
+          ${photoCell(d,d.photo_defect,'Defect','defect')}
+          ${photoCell(d,d.photo_progress,'Progress','progress')}
+          ${photoCell(d,d.photo_after,'After','after')}
+        </div>
+        <div class="defect-foot">
+          <button class="foot-btn" onclick="cycleStatus('${d.id}')" ${catEditable?'':'disabled'}>🔄 Status</button>
+          <button class="foot-btn danger" onclick="deleteDefect('${d.id}')" ${catEditable?'':'disabled'}>🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="report-card" style="animation-delay:${gi*0.04}s">
+      <div class="report-head" onclick="editDefect('${head.id}')">
+        <div>
+          <span class="def-num">Laporan #${reportNum}</span>
+          <span class="area-tag">${areaIcon[head.area]||'📦'} ${head.area}</span>
+        </div>
+        <div class="report-loc">📍 ${esc(head.location)}</div>
+        <div class="report-meta">
+          ${head.pic?`<span>👤 ${esc(head.pic)}</span>`:''}
+          ${head.date_report?`<span>📅 ${fmtDate(head.date_report)}</span>`:''}
+          <span>🔧 ${items.length} defect</span>
         </div>
       </div>
-      ${d.status==='Pending' && d.pending_reason ? `<div class="pending-banner">🟣 <b>Pending:</b> ${esc(d.pending_reason)}</div>` : ''}
-      <div class="photo-strip">
-        ${photoCell(d.photo_defect,'Defect','defect')}
-        ${photoCell(d.photo_progress,'Progress','progress')}
-        ${photoCell(d.photo_after,'After','after')}
-      </div>
-      <div class="defect-foot">
-        <button class="foot-btn" onclick="cycleStatus('${d.id}')" ${catEditable?'':'disabled'}>🔄 Status</button>
-        <button class="foot-btn" onclick="editDefect('${d.id}')">${catEditable?'✏️ Edit':'👁️ Lihat'}</button>
-        <button class="foot-btn danger" onclick="deleteDefect('${d.id}')" ${catEditable?'':'disabled'}>🗑️</button>
-      </div>
+      ${defectsHtml}
     </div>`;
   }).join('');
 }
