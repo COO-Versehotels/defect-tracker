@@ -61,6 +61,7 @@
   .cat-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:0.3px;}
   .cat-badge.cat-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
   .cat-badge.cat-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
+  .pending-banner{margin:0 16px 12px;padding:9px 12px;background:var(--pend-bg);border:1px solid rgba(168,85,247,0.3);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.5;}
   .defect .desc{font-size:15px;font-weight:600;line-height:1.4;margin-bottom:6px;word-break:break-word;}
   .defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);}
   .defect .meta span{display:flex;align-items:center;gap:4px;}
@@ -110,7 +111,7 @@
   .seg-opt.active{color:white;}
   .seg-opt[data-v="Open"].active{background:var(--open);border-color:var(--open);}
   .seg-opt[data-v="In Progress"].active{background:var(--prog);border-color:var(--prog);}
-  .seg-opt[data-v="Pending Part/Vendor"].active{background:var(--pend);border-color:var(--pend);}
+  .seg-opt[data-v="Pending"].active{background:var(--pend);border-color:var(--pend);}
   .seg-opt[data-v="Done"].active{background:var(--done);border-color:var(--done);}
   .seg-opt[data-v="HK"].active{background:#0ea5e9;border-color:#0ea5e9;}
   .seg-opt[data-v="ENG"].active{background:#f97316;border-color:#f97316;}
@@ -143,6 +144,9 @@
   .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--line2);color:var(--text);padding:13px 22px;border-radius:13px;font-size:14px;font-weight:600;z-index:900;opacity:0;transition:all .3s;box-shadow:0 12px 30px rgba(0,0,0,0.4);pointer-events:none;max-width:90%;text-align:center;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .hint-txt{font-size:12px;color:var(--muted);margin-top:-12px;margin-bottom:16px;line-height:1.5;}
+  .form-section-title{font-size:13px;font-weight:800;color:var(--accent2);margin:22px 0 14px;padding-bottom:8px;border-bottom:1.5px solid var(--line);letter-spacing:0.3px;}
+  .form-section-title:first-child{margin-top:0;}
+  .opt-tag{font-weight:500;color:var(--muted2);text-transform:none;letter-spacing:0;}
   .room-type-badge{font-size:11px;color:var(--accent2);font-weight:600;margin-top:-12px;margin-bottom:16px;display:none;}
   .loading-overlay{position:fixed;inset:0;z-index:700;background:rgba(13,21,32,0.7);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
   .loading-overlay.show{display:flex;}
@@ -185,7 +189,7 @@
     <div class="stats" id="stats">
       <div class="stat s-open" data-f="Open" onclick="toggleFilter('Open')"><div class="n" id="cOpen">0</div><div class="l">Open</div></div>
       <div class="stat s-prog" data-f="In Progress" onclick="toggleFilter('In Progress')"><div class="n" id="cProg">0</div><div class="l">Progress</div></div>
-      <div class="stat s-pend" data-f="Pending Part/Vendor" onclick="toggleFilter('Pending Part/Vendor')"><div class="n" id="cPend">0</div><div class="l">Pending</div></div>
+      <div class="stat s-pend" data-f="Pending" onclick="toggleFilter('Pending')"><div class="n" id="cPend">0</div><div class="l">Pending</div></div>
       <div class="stat s-done" data-f="Done" onclick="toggleFilter('Done')"><div class="n" id="cDone">0</div><div class="l">Done</div></div>
     </div>
     <div class="filters" id="areaFilters">
@@ -212,6 +216,9 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="editId">
+
+      <!-- SECTION 1: Klasifikasi -->
+      <div class="form-section-title">1. Klasifikasi</div>
       <label class="fld">Area</label>
       <div class="seg cols4" id="segArea">
         <div class="seg-opt" data-g="area" data-v="Room" onclick="pickSeg(this);onAreaChange()">🛏️ Room</div>
@@ -228,8 +235,16 @@
       <select class="inp" id="fRoomSelect" style="display:none;" onchange="onRoomSelect()"><option value="">— Pilih No. Kamar —</option></select>
       <div class="room-type-badge" id="roomTypeBadge"></div>
       <input type="text" class="inp" id="fLocation" placeholder="Contoh: Lobby, Koridor lt.5, Restaurant...">
-      <label class="fld">Deskripsi Defect</label>
+
+      <!-- SECTION 2: Defect + Foto Dokumentasi -->
+      <div class="form-section-title">2. Defect & Dokumentasi</div>
+      <label class="fld">Keterangan Defect</label>
       <textarea class="inp" id="fDesc" placeholder="Jelaskan kerusakan/masalah yang ditemukan..."></textarea>
+      <div class="photo-stage">
+        <div class="stage-head"><span class="stage-name">📷 Foto Dokumentasi (Defect)</span><span class="stage-count" id="count-defect">0/10</span></div>
+        <div class="photo-grid" id="grid-defect"></div>
+        <input id="file-defect" type="file" accept="image/*" multiple onchange="handlePhoto(this,'defect')" style="display:none;">
+      </div>
       <div class="row2">
         <div><label class="fld">PIC</label><input type="text" class="inp" id="fPic" placeholder="Penanggung jawab"></div>
         <div><label class="fld">Tgl Lapor</label><input type="date" class="inp" id="fDateReport"></div>
@@ -243,30 +258,40 @@
         <div class="seg-opt" data-g="prio" data-v="High" onclick="pickSeg(this)">High</div>
         <div class="seg-opt" data-g="prio" data-v="Urgent" onclick="pickSeg(this)">Urgent</div>
       </div>
-      <label class="fld">Status</label>
-      <div class="seg" id="segStatus">
-        <div class="seg-opt" data-g="status" data-v="Open" onclick="pickSeg(this)">Open</div>
-        <div class="seg-opt" data-g="status" data-v="In Progress" onclick="pickSeg(this)">In Progress</div>
-        <div class="seg-opt" data-g="status" data-v="Pending Part/Vendor" onclick="pickSeg(this)">Pending Part/Vendor</div>
-        <div class="seg-opt" data-g="status" data-v="Done" onclick="pickSeg(this)">Done</div>
-      </div>
-      <label class="fld">Dokumentasi Foto</label>
-      <div class="hint-txt">Maks. 10 foto per tahap. Dikompres otomatis & disimpan di server.</div>
+
+      <!-- SECTION 3: Progress -->
+      <div class="form-section-title">3. Progress Perbaikan</div>
+      <label class="fld">Catatan Progress <span class="opt-tag">(opsional)</span></label>
+      <textarea class="inp" id="fProgressNote" placeholder="Catatan perkembangan perbaikan..."></textarea>
       <div class="photo-stage">
-        <div class="stage-head"><span class="stage-name">📷 Defect</span><span class="stage-count" id="count-defect">0/10</span></div>
-        <div class="photo-grid" id="grid-defect"></div>
-        <input id="file-defect" type="file" accept="image/*" multiple onchange="handlePhoto(this,'defect')" style="display:none;">
-      </div>
-      <div class="photo-stage">
-        <div class="stage-head"><span class="stage-name">🔧 Progress</span><span class="stage-count" id="count-progress">0/10</span></div>
+        <div class="stage-head"><span class="stage-name">🔧 Foto Progress</span><span class="stage-count" id="count-progress">0/10</span></div>
         <div class="photo-grid" id="grid-progress"></div>
         <input id="file-progress" type="file" accept="image/*" multiple onchange="handlePhoto(this,'progress')" style="display:none;">
       </div>
+
+      <!-- SECTION 4: After -->
+      <div class="form-section-title">4. Hasil Akhir (After)</div>
+      <label class="fld">Catatan Hasil <span class="opt-tag">(opsional)</span></label>
+      <textarea class="inp" id="fAfterNote" placeholder="Catatan hasil perbaikan selesai..."></textarea>
       <div class="photo-stage">
-        <div class="stage-head"><span class="stage-name">✅ After</span><span class="stage-count" id="count-after">0/10</span></div>
+        <div class="stage-head"><span class="stage-name">✅ Foto After</span><span class="stage-count" id="count-after">0/10</span></div>
         <div class="photo-grid" id="grid-after"></div>
         <input id="file-after" type="file" accept="image/*" multiple onchange="handlePhoto(this,'after')" style="display:none;">
       </div>
+
+      <!-- SECTION 5: Status -->
+      <div class="form-section-title">5. Status</div>
+      <div class="seg" id="segStatus">
+        <div class="seg-opt" data-g="status" data-v="Open" onclick="pickSeg(this);onStatusChange()">Open</div>
+        <div class="seg-opt" data-g="status" data-v="In Progress" onclick="pickSeg(this);onStatusChange()">In Progress</div>
+        <div class="seg-opt" data-g="status" data-v="Pending" onclick="pickSeg(this);onStatusChange()">Pending</div>
+        <div class="seg-opt" data-g="status" data-v="Done" onclick="pickSeg(this);onStatusChange()">Done</div>
+      </div>
+      <div id="pendingReasonWrap" style="display:none;">
+        <label class="fld">Alasan Pending <span style="color:var(--open);">*wajib</span></label>
+        <textarea class="inp" id="fPendingReason" placeholder="Contoh: Tim overload, menunggu sparepart, menunggu jadwal vendor..."></textarea>
+      </div>
+
       <button class="btn-primary" id="saveBtn" onclick="saveDefect()">💾 Simpan Defect</button>
       <button class="btn-ghost" onclick="closeForm()">Batal</button>
     </div>
@@ -303,8 +328,8 @@ const MAX_PHOTOS = 10;
 let currentUser = null;
 
 const areaIcon = {'Room':'🛏️','Public Area':'🏛️','F&B':'🍽️','Other':'📦'};
-const statusClass = {'Open':'b-open','In Progress':'b-prog','Pending Part/Vendor':'b-pend','Done':'b-done'};
-const statusShort = {'Open':'Open','In Progress':'Progress','Pending Part/Vendor':'Pending','Done':'Done'};
+const statusClass = {'Open':'b-open','In Progress':'b-prog','Pending':'b-pend','Done':'b-done'};
+const statusShort = {'Open':'Open','In Progress':'Progress','Pending':'Pending','Done':'Done'};
 const prioClass = {'Low':'p-low','Medium':'p-med','High':'p-high','Urgent':'p-urgent'};
 
 function canEdit(){ return currentUser && (currentUser.role==='admin' || currentUser.role==='editor'); }
@@ -357,6 +382,10 @@ function onRoomSelect(){
     badge.textContent = '🛏️ Tipe: ' + (TYPE_NAMES[t]||t);
     badge.style.display='block';
   } else { badge.style.display='none'; }
+}
+function onStatusChange(){
+  const isPending = getSeg('status')==='Pending';
+  document.getElementById('pendingReasonWrap').style.display = isPending ? 'block' : 'none';
 }
 
 // ===== LOGIN =====
@@ -484,6 +513,10 @@ function openForm(){
   document.getElementById('fRoomSelect').value='';
   document.getElementById('roomTypeBadge').style.display='none';
   document.getElementById('fDesc').value='';
+  document.getElementById('fProgressNote').value='';
+  document.getElementById('fAfterNote').value='';
+  document.getElementById('fPendingReason').value='';
+  document.getElementById('pendingReasonWrap').style.display='none';
   document.getElementById('fPic').value='';
   document.getElementById('fDateReport').value=new Date().toISOString().split('T')[0];
   document.getElementById('fDateTarget').value='';
@@ -506,6 +539,13 @@ async function saveDefect(){
   if(!location){ showToast(getSeg('area')==='Room'?'Pilih nomor kamar dulu':'Lokasi wajib diisi'); return; }
   const category=getSeg('category');
   if(!category){ showToast('Pilih kategori divisi (HK/ENG) dulu'); return; }
+  // Alasan wajib kalau status Pending
+  const pendingReason=document.getElementById('fPendingReason').value.trim();
+  if(getSeg('status')==='Pending' && !pendingReason){
+    showToast('⚠️ Alasan Pending wajib diisi');
+    document.getElementById('fPendingReason').focus();
+    return;
+  }
   const editId=document.getElementById('editId').value;
   const id=editId || ('def_'+Date.now());
 
@@ -518,7 +558,7 @@ async function saveDefect(){
 
   // ===== CEK DUPLIKAT — defect aktif dengan lokasi + deskripsi sama =====
   const norm = s => (s||'').toLowerCase().replace(/\s+/g,' ').trim();
-  const ACTIVE = ['Open','In Progress','Pending Part/Vendor'];
+  const ACTIVE = ['Open','In Progress','Pending'];
   const curStatus = getSeg('status');
   if(ACTIVE.includes(curStatus)){
     const nLoc = norm(location), nDesc = norm(desc);
@@ -563,6 +603,9 @@ async function saveDefect(){
       date_report:document.getElementById('fDateReport').value || null,
       date_target:document.getElementById('fDateTarget').value || null,
       priority:getSeg('prio'), status:getSeg('status'),
+      progress_note:document.getElementById('fProgressNote').value.trim() || null,
+      after_note:document.getElementById('fAfterNote').value.trim() || null,
+      pending_reason: getSeg('status')==='Pending' ? pendingReason : null,
       photo_defect:photoCols.defect, photo_progress:photoCols.progress, photo_after:photoCols.after
     };
     if(editId===''){ row.created_by=currentUser.email; }
@@ -604,9 +647,13 @@ async function editDefect(id){
     document.getElementById('fLocation').value=d.location||'';
   }
   document.getElementById('fDesc').value=d.description||'';
+  document.getElementById('fProgressNote').value=d.progress_note||'';
+  document.getElementById('fAfterNote').value=d.after_note||'';
+  document.getElementById('fPendingReason').value=d.pending_reason||'';
   document.getElementById('fPic').value=d.pic||'';
   document.getElementById('fDateReport').value=d.date_report||'';
   document.getElementById('fDateTarget').value=d.date_target||'';
+  onStatusChange();
   tempPhotos={
     defect: parsePhotos(d.photo_defect).map(u=>({url:u})),
     progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
@@ -635,11 +682,21 @@ async function deleteDefect(id){
 async function cycleStatus(id){
   const d=defects.find(x=>x.id===id); if(!d) return;
   if(!canEditCategory(d.category)){ showToast('⛔ Status defect '+(d.category==='HK'?'HK':'ENG')+' hanya bisa diubah divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
-  const order=['Open','In Progress','Pending Part/Vendor','Done'];
+  const order=['Open','In Progress','Pending','Done'];
   const next=order[(order.indexOf(d.status)+1)%order.length];
+  const update={status:next};
+  // Kalau pindah ke Pending, wajib alasan
+  if(next==='Pending'){
+    const reason=prompt('Alasan Pending (wajib):\nContoh: Tim overload / menunggu sparepart / menunggu jadwal', d.pending_reason||'');
+    if(reason===null) return; // batal
+    if(!reason.trim()){ showToast('⚠️ Alasan Pending wajib diisi'); return; }
+    update.pending_reason=reason.trim();
+  } else {
+    update.pending_reason=null; // hapus alasan kalau keluar dari Pending
+  }
   showLoading('Update status...');
   try{
-    const {error}=await supa.from('defects').update({status:next}).eq('id',id);
+    const {error}=await supa.from('defects').update(update).eq('id',id);
     if(error) throw new Error(error.message);
     hideLoading(); showToast('Status → '+next); await loadDefects();
   }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
@@ -651,15 +708,17 @@ async function loadDefects(manual){
     const {data,error}=await supa.from('defects').select('*').eq('hotel',HOTEL).order('updated_at',{ascending:false});
     if(error) throw new Error(error.message);
     defects=data||[];
+    // Kompatibilitas: data lama "Pending Part/Vendor" → "Pending"
+    defects.forEach(d=>{ if(d.status==='Pending Part/Vendor') d.status='Pending'; });
     renderStats(); renderList();
   }catch(e){ showToast('Gagal memuat: '+e.message); }
 }
 function renderStats(){
-  const c={Open:0,'In Progress':0,'Pending Part/Vendor':0,Done:0};
+  const c={Open:0,'In Progress':0,'Pending':0,Done:0};
   defects.forEach(d=>{ if(c[d.status]!==undefined) c[d.status]++; });
   document.getElementById('cOpen').textContent=c['Open'];
   document.getElementById('cProg').textContent=c['In Progress'];
-  document.getElementById('cPend').textContent=c['Pending Part/Vendor'];
+  document.getElementById('cPend').textContent=c['Pending'];
   document.getElementById('cDone').textContent=c['Done'];
 }
 function renderList(){
@@ -707,6 +766,7 @@ function renderList(){
           <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
         </div>
       </div>
+      ${d.status==='Pending' && d.pending_reason ? `<div class="pending-banner">🟣 <b>Pending:</b> ${esc(d.pending_reason)}</div>` : ''}
       <div class="photo-strip">
         ${photoCell(d.photo_defect,'Defect','defect')}
         ${photoCell(d.photo_progress,'Progress','progress')}
@@ -745,15 +805,15 @@ function closeViewer(){ document.getElementById('viewer').classList.remove('show
 
 function waRecap(){
   if(defects.length===0){ showToast('Belum ada defect untuk direkap'); return; }
-  const c={Open:0,'In Progress':0,'Pending Part/Vendor':0,Done:0};
+  const c={Open:0,'In Progress':0,'Pending':0,Done:0};
   defects.forEach(d=>{ if(c[d.status]!==undefined) c[d.status]++; });
-  let msg=`🔧 *LAPORAN DEFECT FOLLOW UP*\n━━━━━━━━━━━━━━━━━━━━\n🏨 ${HOTEL}\n📅 ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}\n\n📊 *RINGKASAN:*\n🔴 Open: ${c['Open']}\n🟡 In Progress: ${c['In Progress']}\n🟣 Pending Part/Vendor: ${c['Pending Part/Vendor']}\n🟢 Done: ${c['Done']}\n📁 Total: ${defects.length} defect\n`;
+  let msg=`🔧 *LAPORAN DEFECT FOLLOW UP*\n━━━━━━━━━━━━━━━━━━━━\n🏨 ${HOTEL}\n📅 ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}\n\n📊 *RINGKASAN:*\n🔴 Open: ${c['Open']}\n🟡 In Progress: ${c['In Progress']}\n🟣 Pending: ${c['Pending']}\n🟢 Done: ${c['Done']}\n📁 Total: ${defects.length} defect\n`;
   ['Room','Public Area','F&B','Other'].forEach(area=>{
     const items=defects.filter(d=>d.area===area && d.status!=='Done');
     if(items.length===0) return;
     msg+=`\n${areaIcon[area]} *${area.toUpperCase()}* (${items.length} aktif)\n`;
     items.forEach((d,i)=>{
-      const st={'Open':'🔴','In Progress':'🟡','Pending Part/Vendor':'🟣','Done':'🟢'}[d.status];
+      const st={'Open':'🔴','In Progress':'🟡','Pending':'🟣','Done':'🟢'}[d.status];
       msg+=`${i+1}. ${st} ${d.category?('['+d.category+'] '):''}[${d.priority}] ${d.location} — ${d.description}`;
       if(d.pic) msg+=` (PIC: ${d.pic})`;
       if(d.date_target) msg+=` 🎯${fmtDate(d.date_target)}`;
