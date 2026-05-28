@@ -93,6 +93,16 @@
   .foot-btn{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
   .foot-btn:active{transform:scale(0.96);}
   .foot-btn.danger{color:var(--open);border-color:rgba(239,68,68,0.3);}
+  .foot-btn.primary-ghost{color:var(--accent2);border-color:var(--accent);background:rgba(59,130,246,0.08);}
+  .status-opt{padding:15px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:all .15s;}
+  .status-opt:active{transform:scale(0.98);}
+  .status-opt.s-open:hover{border-color:var(--open);}
+  .status-opt.s-prog:hover{border-color:var(--prog);}
+  .status-opt.s-pend:hover{border-color:var(--pend);}
+  .status-opt.s-done:hover{border-color:var(--done);}
+  .upd-info{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px;}
+  .upd-info .ui-loc{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .upd-info .ui-desc{font-size:13px;color:var(--muted);line-height:1.4;}
   .foot-btn:disabled{opacity:0.35;cursor:not-allowed;}
   .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
   .empty-state .ic{font-size:54px;margin-bottom:14px;opacity:0.4;}
@@ -269,6 +279,54 @@
   </div>
 </div>
 
+<!-- Status Menu Modal -->
+<div class="modal-bg" id="statusMenu" onclick="if(event.target===this)closeStatusMenu()">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head"><h2>Ubah Status</h2><button class="icon-btn" onclick="closeStatusMenu()">✕</button></div>
+    <div class="modal-body">
+      <div class="status-opt s-prog" onclick="applyStatus('In Progress')">🟡 In Progress</div>
+      <div class="status-opt s-pend" onclick="applyStatus('Pending')">🟣 Pending <span style="font-size:11px;opacity:0.7;">(perlu alasan)</span></div>
+      <div class="status-opt s-done" onclick="applyStatus('Done')">🟢 Done</div>
+    </div>
+  </div>
+</div>
+
+<!-- Update Defect Modal (1 defect: status + foto progress/after) -->
+<div class="modal-bg" id="updateModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="updTitle">Update Defect</h2><button class="icon-btn" onclick="closeUpdate()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="updDefectId">
+      <div class="upd-info" id="updInfo"></div>
+
+      <label class="fld">Status</label>
+      <div class="seg cols4" id="updSegStatus" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="ustatus" data-v="In Progress" onclick="updPickStatus(this)">In Progress</div>
+        <div class="seg-opt" data-g="ustatus" data-v="Pending" onclick="updPickStatus(this)">Pending</div>
+        <div class="seg-opt" data-g="ustatus" data-v="Done" onclick="updPickStatus(this)">Done</div>
+      </div>
+      <div id="updPendingWrap" style="display:none;">
+        <label class="fld">Alasan Pending <span style="color:var(--open);">*wajib</span></label>
+        <textarea class="inp" id="updPendingReason" placeholder="Contoh: Tim overload, menunggu sparepart..."></textarea>
+      </div>
+
+      <label class="fld">Target Selesai</label>
+      <input type="date" class="inp" id="updTarget">
+
+      <label class="fld">🔧 Foto Progress <span class="stage-count" id="updCountProgress" style="float:right;">0/10</span></label>
+      <div class="photo-grid" id="updGridProgress"></div>
+      <input id="updFileProgress" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'progress')" style="display:none;">
+
+      <label class="fld" style="margin-top:18px;">✅ Foto After <span class="stage-count" id="updCountAfter" style="float:right;">0/10</span></label>
+      <div class="photo-grid" id="updGridAfter"></div>
+      <input id="updFileAfter" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'after')" style="display:none;">
+
+      <button class="btn-primary" id="updSaveBtn" onclick="saveUpdate()" style="margin-top:18px;">💾 Simpan Update</button>
+      <button class="btn-ghost" onclick="closeUpdate()">Batal</button>
+    </div>
+  </div>
+</div>
+
 <div class="viewer" id="viewer" onclick="closeViewer()">
   <button class="vclose" onclick="closeViewer()">✕</button>
   <button class="gal-nav" id="galPrev" onclick="galleryNav(event,-1)" style="left:14px;">‹</button>
@@ -309,12 +367,17 @@ function canEdit(){ return currentUser && (currentUser.role==='admin' || current
 
 // Divisi user → menentukan kategori defect mana yang boleh di-UPDATE.
 // Email EHK → HK; email CE → ENG; sisanya (admin/HM/FBM) → ALL.
+// Divisi user diambil dari database (kolom division di defect_users).
+// HK = hanya defect Housekeeping; ENG = hanya Engineering; ALL = semua.
 function userDivision(){
   if(!currentUser) return null;
+  // Utamakan nilai dari database
+  if(currentUser.division && ['HK','ENG','ALL'].includes(currentUser.division)) return currentUser.division;
+  // Fallback (kalau kolom division belum di-set): tebak dari email
   const e = (currentUser.email||'').toLowerCase();
   if(e.includes('ehk')) return 'HK';
   if(e.includes('ce.')||e.startsWith('ce')) return 'ENG';
-  return 'ALL'; // admin (COO), HM Luxe, FBM, dll
+  return 'ALL';
 }
 // Boleh update/ubah status defect kategori tertentu?
 function canEditCategory(cat){
@@ -365,7 +428,7 @@ async function doLogin(){
   if(!email){ errEl.textContent='Email wajib diisi'; errEl.style.display='block'; return; }
   showLoading('Memeriksa akses...');
   try{
-    const {data, error} = await supa.from('defect_users').select('email,role,name').eq('email', email).maybeSingle();
+    const {data, error} = await supa.from('defect_users').select('email,role,name,division').eq('email', email).maybeSingle();
     hideLoading();
     if(error){ errEl.textContent='Koneksi gagal: '+error.message; errEl.style.display='block'; return; }
     if(!data){ errEl.textContent='Email tidak terdaftar. Hubungi COO.'; errEl.style.display='block'; return; }
@@ -677,27 +740,113 @@ async function deleteDefect(id){
   }catch(e){ hideLoading(); showToast('Gagal hapus: '+e.message); }
 }
 
-async function cycleStatus(id){
+// ===== STATUS MENU =====
+let statusMenuId=null;
+function openStatusMenu(id){
   const d=defects.find(x=>x.id===id); if(!d) return;
-  if(!canEditCategory(d.category)){ showToast('⛔ Status defect '+(d.category==='HK'?'HK':'ENG')+' hanya bisa diubah divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
-  const order=['Open','In Progress','Pending','Done'];
-  const next=order[(order.indexOf(d.status)+1)%order.length];
-  const update={status:next};
-  // Kalau pindah ke Pending, wajib alasan
-  if(next==='Pending'){
+  if(!canEditCategory(d.category)){ showToast('⛔ Status defect '+d.category+' hanya bisa diubah divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
+  statusMenuId=id;
+  document.getElementById('statusMenu').classList.add('show');
+}
+function closeStatusMenu(){ statusMenuId=null; document.getElementById('statusMenu').classList.remove('show'); }
+async function applyStatus(newStatus){
+  const id=statusMenuId; if(!id) return;
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  const update={status:newStatus};
+  if(newStatus==='Pending'){
+    closeStatusMenu();
     const reason=prompt('Alasan Pending (wajib):\nContoh: Tim overload / menunggu sparepart / menunggu jadwal', d.pending_reason||'');
-    if(reason===null) return; // batal
+    if(reason===null) return;
     if(!reason.trim()){ showToast('⚠️ Alasan Pending wajib diisi'); return; }
     update.pending_reason=reason.trim();
   } else {
-    update.pending_reason=null; // hapus alasan kalau keluar dari Pending
+    update.pending_reason=null;
+    closeStatusMenu();
   }
   showLoading('Update status...');
   try{
     const {error}=await supa.from('defects').update(update).eq('id',id);
     if(error) throw new Error(error.message);
-    hideLoading(); showToast('Status → '+next); await loadDefects();
+    hideLoading(); showToast('Status → '+newStatus); await loadDefects();
   }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
+}
+
+// ===== UPDATE DEFECT MODAL (status + foto progress/after, 1 defect) =====
+let updPhotos={progress:[],after:[]};
+function openUpdateDefect(id){
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  if(!canEditCategory(d.category)){ showToast('⛔ Defect '+d.category+' hanya bisa diupdate divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
+  document.getElementById('updDefectId').value=id;
+  document.getElementById('updInfo').innerHTML=`<div class="ui-loc">📍 ${esc(d.location)} <span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span></div><div class="ui-desc">${esc(d.description)}</div>`;
+  document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.toggle('active', o.dataset.v===d.status));
+  document.getElementById('updPendingWrap').style.display = d.status==='Pending'?'block':'none';
+  document.getElementById('updPendingReason').value=d.pending_reason||'';
+  document.getElementById('updTarget').value=d.date_target||'';
+  updPhotos={
+    progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
+    after: parsePhotos(d.photo_after).map(u=>({url:u}))
+  };
+  updRenderPhotos();
+  document.getElementById('updateModal').classList.add('show');
+}
+function closeUpdate(){ document.getElementById('updateModal').classList.remove('show'); }
+function updPickStatus(el){
+  document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('updPendingWrap').style.display = el.dataset.v==='Pending'?'block':'none';
+}
+async function updHandlePhoto(input, type){
+  const files=Array.from(input.files||[]); if(!files.length) return;
+  const room=MAX_PHOTOS-updPhotos[type].length;
+  if(room<=0){ showToast('Maksimal '+MAX_PHOTOS+' foto'); input.value=''; return; }
+  const toAdd=files.slice(0,room);
+  showToast('Mengompres '+toAdd.length+' foto...');
+  for(const f of toAdd){ const c=await compressImage(f); if(c) updPhotos[type].push({dataUrl:c,isNew:true}); }
+  input.value='';
+  updRenderPhotos();
+}
+function updRenderPhotos(){
+  ['progress','after'].forEach(type=>{
+    const grid=document.getElementById('updGrid'+(type==='progress'?'Progress':'After'));
+    document.getElementById('updCount'+(type==='progress'?'Progress':'After')).textContent=updPhotos[type].length+'/'+MAX_PHOTOS;
+    let html=updPhotos[type].map((p,idx)=>`<div class="pg-item"><img src="${p.url||p.dataUrl}" alt=""><button class="pg-rm" type="button" onclick="updRemovePhoto('${type}',${idx})">✕</button></div>`).join('');
+    if(updPhotos[type].length<MAX_PHOTOS) html+=`<div class="pg-add" onclick="document.getElementById('updFile${type==='progress'?'Progress':'After'}').click()"><span class="pa-ic">＋</span><span class="pa-tx">Tambah</span></div>`;
+    grid.innerHTML=html;
+  });
+}
+function updRemovePhoto(type,idx){ updPhotos[type].splice(idx,1); updRenderPhotos(); }
+async function saveUpdate(){
+  const id=document.getElementById('updDefectId').value;
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  const newStatus=document.querySelector('#updSegStatus .seg-opt.active')?.dataset.v||d.status;
+  const pendingReason=document.getElementById('updPendingReason').value.trim();
+  if(newStatus==='Pending' && !pendingReason){ showToast('⚠️ Alasan Pending wajib diisi'); return; }
+  document.getElementById('updSaveBtn').disabled=true;
+  showLoading('Menyimpan & upload foto...');
+  try{
+    const cols={};
+    for(const type of ['progress','after']){
+      const urls=[]; let seq=0;
+      for(const p of updPhotos[type]){
+        if(p.url) urls.push(p.url);
+        else if(p.isNew && p.dataUrl) urls.push(await uploadPhoto(id,type,p.dataUrl,seq++));
+      }
+      cols[type]=urls.length?JSON.stringify(urls):null;
+    }
+    const update={
+      status:newStatus,
+      pending_reason: newStatus==='Pending'?pendingReason:null,
+      date_target: document.getElementById('updTarget').value||null,
+      photo_progress:cols.progress, photo_after:cols.after
+    };
+    const {error}=await supa.from('defects').update(update).eq('id',id);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    document.getElementById('updSaveBtn').disabled=false;
+    closeUpdate();
+    showToast('✅ Defect diupdate');
+    await loadDefects();
+  }catch(e){ hideLoading(); document.getElementById('updSaveBtn').disabled=false; showToast('Gagal: '+e.message); }
 }
 
 async function loadDefects(manual){
@@ -775,7 +924,8 @@ function renderList(){
           ${photoCell(d,d.photo_after,'After','after')}
         </div>
         <div class="defect-foot">
-          <button class="foot-btn" onclick="cycleStatus('${d.id}')" ${catEditable?'':'disabled'}>🔄 Status</button>
+          <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'}>🛠️ Update Defect</button>
+          <button class="foot-btn" onclick="openStatusMenu('${d.id}')" ${catEditable?'':'disabled'}>🔄 Status</button>
           <button class="foot-btn danger" onclick="deleteDefect('${d.id}')" ${catEditable?'':'disabled'}>🗑️</button>
         </div>
       </div>`;
@@ -857,7 +1007,7 @@ window.addEventListener('load', async ()=>{
   if(saved){
     showLoading('Masuk...');
     try{
-      const {data}=await supa.from('defect_users').select('email,role,name').eq('email',saved).maybeSingle();
+      const {data}=await supa.from('defect_users').select('email,role,name,division').eq('email',saved).maybeSingle();
       hideLoading();
       if(data){ currentUser=data; enterApp(); return; }
     }catch(e){ hideLoading(); }
