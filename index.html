@@ -71,6 +71,7 @@
   .cat-badge.cat-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
   .cat-badge.cat-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
   .pending-banner{margin:0 16px 12px;padding:9px 12px;background:var(--pend-bg);border:1px solid rgba(168,85,247,0.3);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.5;}
+  .done-banner{margin:0 16px 12px;padding:9px 12px;background:var(--done-bg);border:1px solid rgba(34,197,94,0.3);border-radius:9px;font-size:12px;color:#86efac;line-height:1.5;}
   .defect .desc{font-size:15px;font-weight:600;line-height:1.4;margin-bottom:6px;word-break:break-word;}
   .defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);}
   .defect .meta span{display:flex;align-items:center;gap:4px;}
@@ -279,18 +280,6 @@
   </div>
 </div>
 
-<!-- Status Menu Modal -->
-<div class="modal-bg" id="statusMenu" onclick="if(event.target===this)closeStatusMenu()">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-head"><h2>Ubah Status</h2><button class="icon-btn" onclick="closeStatusMenu()">✕</button></div>
-    <div class="modal-body">
-      <div class="status-opt s-prog" onclick="applyStatus('In Progress')">🟡 In Progress</div>
-      <div class="status-opt s-pend" onclick="applyStatus('Pending')">🟣 Pending <span style="font-size:11px;opacity:0.7;">(perlu alasan)</span></div>
-      <div class="status-opt s-done" onclick="applyStatus('Done')">🟢 Done</div>
-    </div>
-  </div>
-</div>
-
 <!-- Update Defect Modal (1 defect: status + foto progress/after) -->
 <div class="modal-bg" id="updateModal">
   <div class="modal">
@@ -320,6 +309,11 @@
       <label class="fld" style="margin-top:18px;">✅ Foto After <span class="stage-count" id="updCountAfter" style="float:right;">0/10</span></label>
       <div class="photo-grid" id="updGridAfter"></div>
       <input id="updFileAfter" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'after')" style="display:none;">
+
+      <div id="updDoneByWrap" style="display:none;margin-top:18px;">
+        <label class="fld">Penanggung Jawab Penyelesaian <span style="color:var(--open);">*wajib</span></label>
+        <input type="text" class="inp" id="updDoneBy" placeholder="Nama yang menyelesaikan (ENG/HK)">
+      </div>
 
       <button class="btn-primary" id="updSaveBtn" onclick="saveUpdate()" style="margin-top:18px;">💾 Simpan Update</button>
       <button class="btn-ghost" onclick="closeUpdate()">Batal</button>
@@ -726,7 +720,7 @@ async function editDefect(id){
 
 async function deleteDefect(id){
   const d=defects.find(x=>x.id===id); if(!d) return;
-  if(!canEditCategory(d.category)){ showToast('⛔ Hanya divisi '+(d.category==='HK'?'Housekeeping':'Engineering')+' yang bisa hapus defect ini'); return; }
+  if(!currentUser || currentUser.role!=='admin'){ showToast('⛔ Hanya COO yang dapat menghapus defect'); return; }
   if(!confirm('Hapus defect ini? Foto & data akan dihapus permanen.')) return;
   showLoading('Menghapus...');
   try{
@@ -740,37 +734,6 @@ async function deleteDefect(id){
   }catch(e){ hideLoading(); showToast('Gagal hapus: '+e.message); }
 }
 
-// ===== STATUS MENU =====
-let statusMenuId=null;
-function openStatusMenu(id){
-  const d=defects.find(x=>x.id===id); if(!d) return;
-  if(!canEditCategory(d.category)){ showToast('⛔ Status defect '+d.category+' hanya bisa diubah divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
-  statusMenuId=id;
-  document.getElementById('statusMenu').classList.add('show');
-}
-function closeStatusMenu(){ statusMenuId=null; document.getElementById('statusMenu').classList.remove('show'); }
-async function applyStatus(newStatus){
-  const id=statusMenuId; if(!id) return;
-  const d=defects.find(x=>x.id===id); if(!d) return;
-  const update={status:newStatus};
-  if(newStatus==='Pending'){
-    closeStatusMenu();
-    const reason=prompt('Alasan Pending (wajib):\nContoh: Tim overload / menunggu sparepart / menunggu jadwal', d.pending_reason||'');
-    if(reason===null) return;
-    if(!reason.trim()){ showToast('⚠️ Alasan Pending wajib diisi'); return; }
-    update.pending_reason=reason.trim();
-  } else {
-    update.pending_reason=null;
-    closeStatusMenu();
-  }
-  showLoading('Update status...');
-  try{
-    const {error}=await supa.from('defects').update(update).eq('id',id);
-    if(error) throw new Error(error.message);
-    hideLoading(); showToast('Status → '+newStatus); await loadDefects();
-  }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
-}
-
 // ===== UPDATE DEFECT MODAL (status + foto progress/after, 1 defect) =====
 let updPhotos={progress:[],after:[]};
 function openUpdateDefect(id){
@@ -782,6 +745,8 @@ function openUpdateDefect(id){
   document.getElementById('updPendingWrap').style.display = d.status==='Pending'?'block':'none';
   document.getElementById('updPendingReason').value=d.pending_reason||'';
   document.getElementById('updTarget').value=d.date_target||'';
+  document.getElementById('updDoneByWrap').style.display = d.status==='Done'?'block':'none';
+  document.getElementById('updDoneBy').value=d.done_by||'';
   updPhotos={
     progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
     after: parsePhotos(d.photo_after).map(u=>({url:u}))
@@ -794,6 +759,7 @@ function updPickStatus(el){
   document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('updPendingWrap').style.display = el.dataset.v==='Pending'?'block':'none';
+  document.getElementById('updDoneByWrap').style.display = el.dataset.v==='Done'?'block':'none';
 }
 async function updHandlePhoto(input, type){
   const files=Array.from(input.files||[]); if(!files.length) return;
@@ -820,7 +786,18 @@ async function saveUpdate(){
   const d=defects.find(x=>x.id===id); if(!d) return;
   const newStatus=document.querySelector('#updSegStatus .seg-opt.active')?.dataset.v||d.status;
   const pendingReason=document.getElementById('updPendingReason').value.trim();
+  const doneBy=document.getElementById('updDoneBy').value.trim();
+
+  // ===== VALIDASI per status =====
   if(newStatus==='Pending' && !pendingReason){ showToast('⚠️ Alasan Pending wajib diisi'); return; }
+  if(newStatus==='In Progress' && updPhotos.progress.length===0){
+    showToast('⚠️ Status In Progress wajib lampirkan Foto Progress'); return;
+  }
+  if(newStatus==='Done'){
+    if(updPhotos.after.length===0){ showToast('⚠️ Status Done wajib lampirkan Foto After'); return; }
+    if(!doneBy){ showToast('⚠️ Status Done wajib isi nama penanggung jawab'); return; }
+  }
+
   document.getElementById('updSaveBtn').disabled=true;
   showLoading('Menyimpan & upload foto...');
   try{
@@ -836,6 +813,7 @@ async function saveUpdate(){
     const update={
       status:newStatus,
       pending_reason: newStatus==='Pending'?pendingReason:null,
+      done_by: newStatus==='Done'?doneBy:null,
       date_target: document.getElementById('updTarget').value||null,
       photo_progress:cols.progress, photo_after:cols.after
     };
@@ -918,15 +896,15 @@ function renderList(){
           </div>
         </div>
         ${d.status==='Pending' && d.pending_reason ? `<div class="pending-banner">🟣 <b>Pending:</b> ${esc(d.pending_reason)}</div>` : ''}
+        ${d.status==='Done' && d.done_by ? `<div class="done-banner">🟢 <b>Selesai oleh:</b> ${esc(d.done_by)}</div>` : ''}
         <div class="photo-strip">
           ${photoCell(d,d.photo_defect,'Defect','defect')}
           ${photoCell(d,d.photo_progress,'Progress','progress')}
           ${photoCell(d,d.photo_after,'After','after')}
         </div>
         <div class="defect-foot">
-          <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'}>🛠️ Update Defect</button>
-          <button class="foot-btn" onclick="openStatusMenu('${d.id}')" ${catEditable?'':'disabled'}>🔄 Status</button>
-          <button class="foot-btn danger" onclick="deleteDefect('${d.id}')" ${catEditable?'':'disabled'}>🗑️</button>
+          <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'} style="flex:3;">🛠️ Update Defect</button>
+          ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn danger" onclick="deleteDefect('${d.id}')">🗑️</button>`:''}
         </div>
       </div>`;
     }).join('');
