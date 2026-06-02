@@ -72,6 +72,16 @@
   .cat-badge.cat-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
   .pending-banner{margin:0 16px 12px;padding:9px 12px;background:var(--pend-bg);border:1px solid rgba(168,85,247,0.3);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.5;}
   .done-banner{margin:0 16px 12px;padding:9px 12px;background:var(--done-bg);border:1px solid rgba(34,197,94,0.3);border-radius:9px;font-size:12px;color:#86efac;line-height:1.5;}
+  .log-summary{padding:11px 14px;background:var(--card2);border:1px solid var(--line);border-radius:11px;margin-bottom:14px;font-size:12px;color:var(--muted);}
+  .log-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;}
+  .log-item{display:flex;gap:11px;padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:11px;font-size:13px;align-items:flex-start;}
+  .log-item .log-ic{font-size:18px;flex-shrink:0;margin-top:1px;}
+  .log-item .log-body{flex:1;min-width:0;line-height:1.45;}
+  .log-item .log-user{font-weight:700;color:var(--accent2);font-size:12px;}
+  .log-item .log-act{font-weight:600;color:var(--text);}
+  .log-item .log-det{color:var(--muted);font-size:12px;margin-top:3px;word-break:break-word;}
+  .log-item .log-time{font-size:11px;color:var(--muted2);font-family:'Spline Sans Mono',monospace;flex-shrink:0;margin-top:1px;text-align:right;min-width:88px;}
+  .log-empty{text-align:center;padding:40px 20px;color:var(--muted);}
   .defect .desc{font-size:15px;font-weight:600;line-height:1.4;margin-bottom:6px;word-break:break-word;}
   .defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);}
   .defect .meta span{display:flex;align-items:center;gap:4px;}
@@ -215,6 +225,7 @@
       <span class="role-pill" id="rolePill">—</span>
       <button class="icon-btn" onclick="loadDefects(true)" title="Refresh">↻</button>
       <button class="icon-btn" onclick="waRecap()" title="WhatsApp Recap">💬</button>
+      <button class="icon-btn" id="logBtnTop" onclick="openLogModal()" title="Log Activity" style="display:none;">📜</button>
       <button class="icon-btn" onclick="doLogout()" title="Logout">⏏</button>
     </div>
   </div>
@@ -329,6 +340,54 @@
   </div>
 </div>
 
+<!-- Log Activity Modal (Admin only) -->
+<div class="modal-bg" id="logModal" onclick="if(event.target===this)closeLogModal()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h2>📜 Log Activity</h2>
+      <button class="icon-btn" onclick="closeLogModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="log-filters">
+        <select class="inp" id="logFilterAction" onchange="renderLogs()" style="margin-bottom:10px;">
+          <option value="">Semua Aksi</option>
+          <option value="login">🔑 Login</option>
+          <option value="create">➕ Buat Defect</option>
+          <option value="update_status">🔄 Update Status</option>
+          <option value="upload_photo">📷 Upload Foto</option>
+          <option value="edit">✏️ Edit</option>
+          <option value="delete">🗑️ Hapus</option>
+        </select>
+        <select class="inp" id="logFilterUser" onchange="renderLogs()" style="margin-bottom:10px;">
+          <option value="">Semua User</option>
+        </select>
+        <select class="inp" id="logFilterDays" onchange="loadLogs()" style="margin-bottom:14px;">
+          <option value="7">7 hari terakhir</option>
+          <option value="30" selected>30 hari terakhir</option>
+          <option value="90">90 hari terakhir</option>
+        </select>
+      </div>
+      <div class="log-summary" id="logSummary"></div>
+      <div id="logList" class="log-list"></div>
+      <button class="btn-ghost" onclick="cleanupLogs()" style="margin-top:14px;">🧹 Hapus log >90 hari sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- History per-Defect Modal (Admin only) -->
+<div class="modal-bg" id="historyModal" onclick="if(event.target===this)closeHistoryModal()">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <h2>📜 History Defect</h2>
+      <button class="icon-btn" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="upd-info" id="historyInfo"></div>
+      <div id="historyList" class="log-list"></div>
+    </div>
+  </div>
+</div>
+
 <div class="viewer" id="viewer" onclick="closeViewer()">
   <button class="vclose" onclick="closeViewer()">✕</button>
   <button class="gal-nav" id="galPrev" onclick="galleryNav(event,-1)" style="left:14px;">‹</button>
@@ -389,6 +448,115 @@ function canEditCategory(cat){
   return div === cat; // EHK hanya HK, CE hanya ENG
 }
 
+// ===== ACTIVITY LOGGING =====
+// Catat aksi penting. Fire-and-forget (tidak block UI kalau gagal).
+async function logActivity(action, opts){
+  if(!currentUser) return;
+  try{
+    await supa.from('activity_logs').insert({
+      user_email: currentUser.email,
+      user_role: currentUser.role,
+      action,
+      defect_id: opts?.defectId || null,
+      report_id: opts?.reportId || null,
+      hotel: HOTEL,
+      detail: opts?.detail || null,
+      meta: opts?.meta || null
+    });
+  }catch(e){ console.warn('Log gagal:', e); }
+}
+
+// ===== LOG ACTIVITY MODAL (admin) =====
+let logsCache=[];
+function openLogModal(){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat melihat Log'); return; }
+  document.getElementById('logModal').classList.add('show');
+  loadLogs();
+}
+function closeLogModal(){ document.getElementById('logModal').classList.remove('show'); }
+async function loadLogs(){
+  showLoading('Memuat log...');
+  try{
+    const days=parseInt(document.getElementById('logFilterDays').value||'30',10);
+    const sinceIso=new Date(Date.now()-days*86400000).toISOString();
+    const {data,error}=await supa.from('activity_logs').select('*').eq('hotel',HOTEL).gte('created_at',sinceIso).order('created_at',{ascending:false}).limit(1000);
+    hideLoading();
+    if(error) throw new Error(error.message);
+    logsCache=data||[];
+    // populate user filter
+    const users=[...new Set(logsCache.map(l=>l.user_email))].sort();
+    const sel=document.getElementById('logFilterUser');
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Semua User</option>'+users.map(u=>`<option value="${u}"${u===cur?' selected':''}>${u}</option>`).join('');
+    renderLogs();
+  }catch(e){ hideLoading(); showToast('Gagal memuat log: '+e.message); }
+}
+const ACT_ICON={login:'🔑',create:'➕',update_status:'🔄',upload_photo:'📷',edit:'✏️',delete:'🗑️'};
+const ACT_NAME={login:'Login',create:'Buat Defect',update_status:'Update Status',upload_photo:'Upload Foto',edit:'Edit Defect',delete:'Hapus Defect'};
+function renderLogs(){
+  const actFilter=document.getElementById('logFilterAction').value;
+  const userFilter=document.getElementById('logFilterUser').value;
+  let list=logsCache;
+  if(actFilter) list=list.filter(l=>l.action===actFilter);
+  if(userFilter) list=list.filter(l=>l.user_email===userFilter);
+  document.getElementById('logSummary').textContent='📊 '+list.length+' aktivitas ditampilkan (dari '+logsCache.length+' total)';
+  const cont=document.getElementById('logList');
+  if(list.length===0){ cont.innerHTML='<div class="log-empty">Tidak ada aktivitas</div>'; return; }
+  cont.innerHTML=list.map(l=>`<div class="log-item">
+    <span class="log-ic">${ACT_ICON[l.action]||'•'}</span>
+    <div class="log-body">
+      <div><span class="log-user">${esc(l.user_email)}</span> · <span class="log-act">${ACT_NAME[l.action]||l.action}</span></div>
+      ${l.detail?`<div class="log-det">${esc(l.detail)}</div>`:''}
+    </div>
+    <div class="log-time">${fmtLogTime(l.created_at)}</div>
+  </div>`).join('');
+}
+function fmtLogTime(iso){
+  const d=new Date(iso);
+  const now=new Date();
+  const sameDay = d.toDateString()===now.toDateString();
+  if(sameDay) return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+async function cleanupLogs(){
+  if(!confirm('Hapus semua log lebih dari 90 hari? Tidak bisa di-undo.')) return;
+  showLoading('Membersihkan log lama...');
+  try{
+    const cutoff=new Date(Date.now()-90*86400000).toISOString();
+    const {error}=await supa.from('activity_logs').delete().lt('created_at',cutoff);
+    hideLoading();
+    if(error) throw new Error(error.message);
+    showToast('✅ Log lama dibersihkan');
+    loadLogs();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
+}
+
+// ===== HISTORY per defect =====
+async function openHistory(defectId){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat melihat History'); return; }
+  const d=defects.find(x=>x.id===defectId);
+  document.getElementById('historyInfo').innerHTML=d?`<div class="ui-loc">📍 ${esc(d.location)}</div><div class="ui-desc">${esc(d.description)}</div>`:'';
+  document.getElementById('historyModal').classList.add('show');
+  document.getElementById('historyList').innerHTML='<div class="log-empty">Memuat...</div>';
+  try{
+    const {data,error}=await supa.from('activity_logs').select('*').eq('defect_id',defectId).order('created_at',{ascending:false}).limit(200);
+    if(error) throw new Error(error.message);
+    const list=data||[];
+    const cont=document.getElementById('historyList');
+    if(list.length===0){ cont.innerHTML='<div class="log-empty">Belum ada aktivitas tercatat untuk defect ini</div>'; return; }
+    cont.innerHTML=list.map(l=>`<div class="log-item">
+      <span class="log-ic">${ACT_ICON[l.action]||'•'}</span>
+      <div class="log-body">
+        <div><span class="log-user">${esc(l.user_email)}</span> · <span class="log-act">${ACT_NAME[l.action]||l.action}</span></div>
+        ${l.detail?`<div class="log-det">${esc(l.detail)}</div>`:''}
+      </div>
+      <div class="log-time">${fmtLogTime(l.created_at)}</div>
+    </div>`).join('');
+  }catch(e){ document.getElementById('historyList').innerHTML='<div class="log-empty">Gagal: '+esc(e.message)+'</div>'; }
+}
+function closeHistoryModal(){ document.getElementById('historyModal').classList.remove('show'); }
+
+
 // ===== ROOM DROPDOWN =====
 function buildRoomDropdown(){
   const sel = document.getElementById('fRoomSelect');
@@ -437,6 +605,7 @@ async function doLogin(){
     currentUser = data;
     localStorage.setItem('defect_user_email', email);
     enterApp();
+    logActivity('login', {detail:'Login dari email '+email});
   }catch(e){ hideLoading(); errEl.textContent='Error: '+e.message; errEl.style.display='block'; }
 }
 function doLogout(){
@@ -451,6 +620,7 @@ async function enterApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('rolePill').textContent = currentUser.role;
   document.getElementById('fab').classList.toggle('hidden', !canEdit());
+  document.getElementById('logBtnTop').style.display = currentUser.role==='admin' ? 'flex' : 'none';
   buildRoomDropdown();
   await loadDefects();
 }
@@ -670,6 +840,11 @@ async function saveDefect(){
       if(!d.existingId) row.created_by=currentUser.email;
       const {error}=await supa.from('defects').upsert(row);
       if(error) throw new Error(error.message);
+      // Log per item
+      logActivity(d.existingId?'edit':'create', {
+        defectId:id, reportId,
+        detail: (d.existingId?'Edit':'Buat')+' defect ['+d.category+'] di '+location+' — '+d.description.trim().slice(0,80)
+      });
     }
     hideLoading();
     document.getElementById('saveBtn').disabled=false;
@@ -737,6 +912,7 @@ async function deleteDefect(id){
     const {error}=await supa.from('defects').delete().eq('id',id);
     if(error) throw new Error(error.message);
     hideLoading();
+    logActivity('delete', {defectId:id, reportId:d.report_id, detail:'Hapus defect ['+(d.category||'?')+'] di '+d.location+' — '+(d.description||'').slice(0,80)});
     showToast('🗑️ Defect dihapus');
     await loadDefects();
   }catch(e){ hideLoading(); showToast('Gagal hapus: '+e.message); }
@@ -847,6 +1023,19 @@ async function saveUpdate(){
     if(error) throw new Error(error.message);
     hideLoading();
     document.getElementById('updSaveBtn').disabled=false;
+    // Hitung foto baru yang di-upload
+    const newProgress = updPhotos.progress.filter(p=>p.isNew).length;
+    const newAfter = updPhotos.after.filter(p=>p.isNew).length;
+    // Log: status berubah (kalau berubah dari sebelumnya)
+    if(d.status !== newStatus){
+      let det = (d.status||'?')+' → '+newStatus+' · '+d.location+' — '+(d.description||'').slice(0,60);
+      if(newStatus==='Pending') det += ' (alasan: '+pendingReason.slice(0,80)+')';
+      if(newStatus==='Done') det += ' (oleh: '+doneBy+')';
+      logActivity('update_status', {defectId:id, reportId:d.report_id, detail:det});
+    }
+    // Log: upload foto (kalau ada)
+    if(newProgress>0) logActivity('upload_photo', {defectId:id, reportId:d.report_id, detail:newProgress+' foto Progress · '+d.location});
+    if(newAfter>0) logActivity('upload_photo', {defectId:id, reportId:d.report_id, detail:newAfter+' foto After · '+d.location});
     closeUpdate();
     showToast('✅ Defect diupdate');
     await loadDefects();
@@ -930,6 +1119,7 @@ function renderList(){
         </div>
         <div class="defect-foot">
           <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'} style="flex:3;">🛠️ Update Defect</button>
+          ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn" onclick="openHistory('${d.id}')" title="History">📜</button>`:''}
           ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn danger" onclick="deleteDefect('${d.id}')">🗑️</button>`:''}
         </div>
       </div>`;
