@@ -49,8 +49,8 @@
   .stat .l{font-size:10px;color:var(--muted);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
   .stat.s-open .n{color:var(--open);}.stat.s-prog .n{color:var(--prog);}.stat.s-pend .n{color:var(--pend);}.stat.s-done .n{color:var(--done);}
   .filters{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
-  .tab-switch{display:flex;gap:6px;margin-bottom:18px;background:var(--card);padding:5px;border-radius:14px;border:1px solid var(--line);}
-  .tab-btn{flex:1;padding:11px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .tab-switch{display:flex;gap:6px;margin-bottom:18px;background:var(--card);padding:5px;border-radius:14px;border:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tab-btn{flex:1;min-width:fit-content;padding:11px 14px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;}
   .tab-btn.active{background:var(--accent);color:white;box-shadow:0 4px 12px rgba(59,130,246,0.35);}
   .rooms-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;}
   .rsum{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center;}
@@ -83,6 +83,21 @@
   .room-cell.r-pend{border-color:var(--pend);background:rgba(168,85,247,0.10);}
   .room-cell.r-done{border-color:rgba(100,116,139,0.5);background:rgba(100,116,139,0.08);}
   .room-cell .rc-cnt{position:absolute;bottom:3px;right:4px;font-size:9px;font-weight:800;color:var(--text);background:rgba(0,0,0,0.4);border-radius:5px;padding:1px 4px;line-height:1;}
+  .subarea-list{display:flex;flex-direction:column;gap:9px;}
+  .subarea-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;transition:all .15s;}
+  .subarea-item:active{transform:scale(0.98);}
+  .subarea-item.r-clean{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.06);}
+  .subarea-item.r-open{border-color:var(--open);background:rgba(239,68,68,0.10);}
+  .subarea-item.r-prog{border-color:var(--prog);background:rgba(245,158,11,0.10);}
+  .subarea-item.r-pend{border-color:var(--pend);background:rgba(168,85,247,0.10);}
+  .subarea-item.r-done{border-color:rgba(100,116,139,0.5);background:rgba(100,116,139,0.08);}
+  .subarea-item .sa-name{font-size:14px;font-weight:700;flex:1;min-width:0;}
+  .subarea-item .sa-cnt{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:var(--card2);color:var(--muted);white-space:nowrap;}
+  .subarea-item.r-clean .sa-cnt{color:var(--done);background:rgba(34,197,94,0.15);}
+  .subarea-item.r-open .sa-cnt{color:var(--open);background:rgba(239,68,68,0.15);}
+  .subarea-item.r-prog .sa-cnt{color:var(--prog);background:rgba(245,158,11,0.15);}
+  .subarea-item.r-pend .sa-cnt{color:var(--pend);background:rgba(168,85,247,0.15);}
+  .subarea-item.r-done .sa-cnt{color:#94a3b8;background:rgba(100,116,139,0.15);}
   .search-wrap{position:relative;margin-bottom:14px;}
   .search-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;opacity:0.6;pointer-events:none;}
   .search-inp{width:100%;padding:12px 40px 12px 40px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;color:var(--text);font-size:14px;font-family:inherit;}
@@ -273,8 +288,10 @@
   <div class="container">
     <!-- Tab Switcher -->
     <div class="tab-switch">
-      <button class="tab-btn active" data-tab="defects" onclick="switchTab('defects')">📋 Laporan Defect</button>
-      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">🛏️ Kondisi Kamar</button>
+      <button class="tab-btn active" data-tab="defects" onclick="switchTab('defects')">📋 Laporan</button>
+      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">🛏️ Defect Room</button>
+      <button class="tab-btn" data-tab="public" onclick="switchTab('public')">🏛️ Defect Public</button>
+      <button class="tab-btn" data-tab="fb" onclick="switchTab('fb')">🍽️ Defect F&B</button>
     </div>
 
     <!-- TAB 1: Defect List (existing) -->
@@ -308,13 +325,39 @@
     <div id="viewRooms" style="display:none;">
       <div class="rooms-summary" id="roomsSummary"></div>
       <div class="rooms-legend">
-        <span><i class="rdot r-clean"></i> Bersih</span>
+        <span><i class="rdot r-clean"></i> No Defect List</span>
         <span><i class="rdot r-open"></i> Open</span>
         <span><i class="rdot r-prog"></i> Progress</span>
         <span><i class="rdot r-pend"></i> Pending</span>
         <span><i class="rdot r-done"></i> Selesai</span>
       </div>
       <div class="rooms-floors" id="roomsFloors"></div>
+    </div>
+
+    <!-- TAB 3: Defect Public Area -->
+    <div id="viewPublic" style="display:none;">
+      <div class="rooms-summary" id="publicSummary"></div>
+      <div class="rooms-legend">
+        <span><i class="rdot r-clean"></i> No Defect List</span>
+        <span><i class="rdot r-open"></i> Open</span>
+        <span><i class="rdot r-prog"></i> Progress</span>
+        <span><i class="rdot r-pend"></i> Pending</span>
+        <span><i class="rdot r-done"></i> Selesai</span>
+      </div>
+      <div id="publicList" class="subarea-list"></div>
+    </div>
+
+    <!-- TAB 4: Defect F&B -->
+    <div id="viewFB" style="display:none;">
+      <div class="rooms-summary" id="fbSummary"></div>
+      <div class="rooms-legend">
+        <span><i class="rdot r-clean"></i> No Defect List</span>
+        <span><i class="rdot r-open"></i> Open</span>
+        <span><i class="rdot r-prog"></i> Progress</span>
+        <span><i class="rdot r-pend"></i> Pending</span>
+        <span><i class="rdot r-done"></i> Selesai</span>
+      </div>
+      <div id="fbList" class="subarea-list"></div>
     </div>
   </div>
   <button class="fab" id="fab" onclick="openForm()">+</button>
@@ -357,8 +400,9 @@
       </div>
       <label class="fld">Lokasi Spesifik</label>
       <select class="inp" id="fRoomSelect" style="display:none;" onchange="onRoomSelect()"><option value="">— Pilih No. Kamar —</option></select>
+      <select class="inp" id="fSubAreaSelect" style="display:none;" onchange="onSubAreaSelect()"><option value="">— Pilih Sub-Area —</option></select>
       <div class="room-type-badge" id="roomTypeBadge"></div>
-      <input type="text" class="inp" id="fLocation" placeholder="Contoh: Lobby, Koridor lt.5, Restaurant...">
+      <input type="text" class="inp" id="fLocation" placeholder="Keterangan tambahan (mis: dekat tangga darurat)...">
       <div class="row2">
         <div><label class="fld">PIC Area</label><input type="text" class="inp" id="fPic" placeholder="Penanggung jawab area"></div>
         <div><label class="fld">Tgl Lapor</label><input type="date" class="inp" id="fDateReport"></div>
@@ -492,6 +536,17 @@ const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY, { auth:{persistSes
 // Data 120 kamar Verse Luxe (dari Excel)
 const ROOMS = [{r:"501",t:"EXEJ"},{r:"502",t:"SPRD"},{r:"503",t:"SPRD"},{r:"505",t:"SPRD"},{r:"506",t:"SPRD"},{r:"507",t:"SPRT"},{r:"508",t:"SPRD"},{r:"509",t:"SPRD"},{r:"510",t:"SUI"},{r:"511",t:"SPRD"},{r:"512",t:"SUI"},{r:"515",t:"SPRT"},{r:"516",t:"SUI"},{r:"517",t:"SPRT"},{r:"518",t:"SUI"},{r:"601",t:"EXEJ"},{r:"602",t:"SPRD"},{r:"603",t:"SPRT"},{r:"605",t:"SPRD"},{r:"606",t:"SPRT"},{r:"607",t:"SPRD"},{r:"608",t:"SPRD"},{r:"609",t:"SPRD"},{r:"610",t:"DLXD"},{r:"611",t:"SPRD"},{r:"612",t:"DLXD"},{r:"615",t:"SPRD"},{r:"616",t:"DLXT"},{r:"617",t:"SPRD"},{r:"618",t:"DLXT"},{r:"701",t:"EXEJ"},{r:"702",t:"SPRD"},{r:"703",t:"SPRT"},{r:"705",t:"SPRD"},{r:"706",t:"SPRT"},{r:"707",t:"SPRT"},{r:"708",t:"SPRD"},{r:"709",t:"SPRD"},{r:"710",t:"DLXD"},{r:"711",t:"SPRD"},{r:"712",t:"DLXD"},{r:"715",t:"SPRD"},{r:"716",t:"DLXT"},{r:"717",t:"SPRD"},{r:"718",t:"DLXT"},{r:"801",t:"EXEJ"},{r:"802",t:"SPRD"},{r:"803",t:"SPRT"},{r:"805",t:"SPRD"},{r:"806",t:"SPRT"},{r:"807",t:"SPRT"},{r:"808",t:"SPRD"},{r:"809",t:"SPRT"},{r:"810",t:"DLXD"},{r:"811",t:"SPRT"},{r:"812",t:"DLXD"},{r:"815",t:"SPRD"},{r:"816",t:"DLXT"},{r:"817",t:"SPRD"},{r:"818",t:"DLXD"},{r:"901",t:"EXEJ"},{r:"902",t:"SPRD"},{r:"903",t:"SPRT"},{r:"905",t:"SPRD"},{r:"906",t:"SPRT"},{r:"907",t:"SPRD"},{r:"908",t:"SPRD"},{r:"909",t:"SPRD"},{r:"910",t:"DLXD"},{r:"911",t:"SPRT"},{r:"912",t:"DLXD"},{r:"915",t:"SPRD"},{r:"916",t:"DLXD"},{r:"917",t:"SPRD"},{r:"918",t:"DLXD"},{r:"1001",t:"EXEJ"},{r:"1002",t:"SPRD"},{r:"1003",t:"SPRT"},{r:"1005",t:"SPRD"},{r:"1006",t:"SPRD"},{r:"1007",t:"SPRT"},{r:"1008",t:"SPRD"},{r:"1009",t:"SPRD"},{r:"1010",t:"DLXD"},{r:"1011",t:"SPRD"},{r:"1012",t:"DLXD"},{r:"1015",t:"SPRD"},{r:"1016",t:"DLXD"},{r:"1017",t:"SPRT"},{r:"1018",t:"DLXT"},{r:"1101",t:"EXEJ"},{r:"1102",t:"SPRD"},{r:"1103",t:"SPRT"},{r:"1105",t:"SPRD"},{r:"1106",t:"SPRD"},{r:"1107",t:"SPRT"},{r:"1108",t:"SPRD"},{r:"1109",t:"SPRD"},{r:"1110",t:"DLXD"},{r:"1111",t:"SPRD"},{r:"1112",t:"DLXD"},{r:"1115",t:"SPRD"},{r:"1116",t:"DLXT"},{r:"1117",t:"SPRT"},{r:"1118",t:"DLXD"},{r:"1201",t:"SPRT"},{r:"1202",t:"SPRD"},{r:"1203",t:"SPRT"},{r:"1205",t:"SPRD"},{r:"1206",t:"SPRT"},{r:"1207",t:"SPRD"},{r:"1208",t:"SPRD"},{r:"1209",t:"SPRD"},{r:"1210",t:"DLXD"},{r:"1211",t:"SPRD"},{r:"1212",t:"DLXD"},{r:"1215",t:"SPRD"},{r:"1216",t:"DLXD"},{r:"1217",t:"SPRD"},{r:"1218",t:"DLXD"}];
 const TYPE_NAMES = {'SPRD':'Superior Double','SPRT':'Superior Twin','DLXD':'Deluxe Double','DLXT':'Deluxe Twin','EXEJ':'Executive Junior','SUI':'Suite'};
+
+// Sub-area Public Area & F&B (urut sesuai permintaan)
+const PUBLIC_AREAS = [
+  'Basement','Pos Security','Parkiran Motor','Parkiran Mobil Belakang','Parkiran Mobil Depan',
+  'Lobby Area','Lantai M','Lantai 5','Lantai 6','Lantai 7','Lantai 8',
+  'Lantai 10','Lantai 11','Lantai 12','Lantai T','Lantai Attap','Lantai Roof TOP'
+];
+const FB_AREAS = [
+  'F&B Store Lobby (Parkiran)','BAR Area Lantai Lobby','Kitchen Area Lantai M',
+  'Resto Area Lantai M','Lantai T','Lantai Attap'
+];
 
 let defects = [];
 let currentArea = 'all';
@@ -650,25 +705,49 @@ function buildRoomDropdown(){
 }
 function onAreaChange(){
   const area = getSeg('area');
-  const sel = document.getElementById('fRoomSelect');
+  const roomSel = document.getElementById('fRoomSelect');
+  const subSel = document.getElementById('fSubAreaSelect');
   const inp = document.getElementById('fLocation');
   const badge = document.getElementById('roomTypeBadge');
+  // Reset semua
+  roomSel.style.display='none';
+  subSel.style.display='none';
+  badge.style.display='none';
   if(area==='Room'){
-    sel.style.display='block';
-    inp.style.display='none';
-    inp.value='';
-  } else {
-    sel.style.display='none';
-    badge.style.display='none';
+    roomSel.style.display='block';
     inp.style.display='block';
+    inp.placeholder='(Opsional) Tambahan keterangan lokasi...';
+  } else if(area==='Public Area'){
+    buildSubAreaDropdown('Public Area');
+    subSel.style.display='block';
+    inp.style.display='block';
+    inp.placeholder='(Opsional) Tambahan keterangan (mis: dekat tangga darurat)...';
+  } else if(area==='F&B'){
+    buildSubAreaDropdown('F&B');
+    subSel.style.display='block';
+    inp.style.display='block';
+    inp.placeholder='(Opsional) Tambahan keterangan...';
+  } else {
+    // Other
+    inp.style.display='block';
+    inp.placeholder='Sebutkan lokasinya...';
   }
+}
+function buildSubAreaDropdown(area){
+  const sel = document.getElementById('fSubAreaSelect');
+  const list = area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
+  sel.innerHTML = '<option value="">— Pilih Sub-Area —</option>' +
+    list.map(a=>`<option value="${a}">${a}</option>`).join('');
+}
+function onSubAreaSelect(){
+  // Tidak auto-isi fLocation — sub-area disimpan terpisah saat save
+  // fLocation hanya untuk keterangan tambahan
 }
 function onRoomSelect(){
   const sel = document.getElementById('fRoomSelect');
   const opt = sel.options[sel.selectedIndex];
   const badge = document.getElementById('roomTypeBadge');
   if(sel.value){
-    document.getElementById('fLocation').value = 'Kamar ' + sel.value;
     const t = opt.getAttribute('data-type');
     badge.textContent = '🛏️ Tipe: ' + (TYPE_NAMES[t]||t);
     badge.style.display='block';
@@ -867,6 +946,7 @@ function openForm(){
   document.getElementById('reportId').value='rpt_'+Date.now();
   document.getElementById('fLocation').value='';
   document.getElementById('fRoomSelect').value='';
+  document.getElementById('fSubAreaSelect').value='';
   document.getElementById('roomTypeBadge').style.display='none';
   document.getElementById('fPic').value='';
   document.getElementById('fDateReport').value=new Date().toISOString().split('T')[0];
@@ -882,12 +962,25 @@ function closeForm(){ document.getElementById('formModal').classList.remove('sho
 async function saveDefect(){
   if(!canEdit()){ showToast('Tidak ada akses'); return; }
   const area=getSeg('area');
-  const location=document.getElementById('fLocation').value.trim();
+  const extraLoc=document.getElementById('fLocation').value.trim();
+  const roomVal=document.getElementById('fRoomSelect').value;
+  const subAreaVal=document.getElementById('fSubAreaSelect').value;
+  // Build location string sesuai area
+  let location='';
+  if(area==='Room'){
+    if(!roomVal){ showToast('Pilih nomor kamar dulu'); return; }
+    location = 'Kamar '+roomVal + (extraLoc?' — '+extraLoc:'');
+  } else if(area==='Public Area' || area==='F&B'){
+    if(!subAreaVal){ showToast('Pilih sub-area dulu'); return; }
+    location = subAreaVal + (extraLoc?' — '+extraLoc:'');
+  } else {
+    if(!extraLoc){ showToast('Lokasi wajib diisi'); return; }
+    location = extraLoc;
+  }
   const pic=document.getElementById('fPic').value.trim();
   const dateReport=document.getElementById('fDateReport').value||null;
   const reportId=document.getElementById('reportId').value;
   if(!area){ showToast('Pilih area dulu'); return; }
-  if(!location){ showToast(area==='Room'?'Pilih nomor kamar dulu':'Lokasi wajib diisi'); return; }
   if(formDefects.length===0){ showToast('Tambah minimal 1 defect'); return; }
 
   // Validasi tiap defect item
@@ -960,11 +1053,31 @@ async function editDefect(id){
   document.querySelectorAll('#segArea .seg-opt').forEach(o=>o.classList.remove('active'));
   setSeg('area',d.area);
   onAreaChange();
+  // Parse location: "Kamar 510 — extra" atau "Basement — extra" atau plain
+  const loc = d.location||'';
+  const splitIdx = loc.indexOf(' — ');
+  const mainPart = splitIdx>=0 ? loc.slice(0,splitIdx) : loc;
+  const extraPart = splitIdx>=0 ? loc.slice(splitIdx+3) : '';
   if(d.area==='Room'){
-    const m=(d.location||'').match(/(\d+)/); const rn=m?m[1]:'';
+    const m=mainPart.match(/(\d+)/); const rn=m?m[1]:'';
     document.getElementById('fRoomSelect').value=rn; onRoomSelect();
-    document.getElementById('fLocation').value=d.location||'';
-  } else { document.getElementById('fLocation').value=d.location||''; }
+    document.getElementById('fLocation').value=extraPart;
+  } else if(d.area==='Public Area' || d.area==='F&B'){
+    // Cocokkan ke daftar sub-area
+    const list = d.area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
+    const sel = document.getElementById('fSubAreaSelect');
+    const match = list.find(a=>a===mainPart);
+    if(match){
+      sel.value=match;
+      document.getElementById('fLocation').value=extraPart;
+    } else {
+      // Data lama yang tidak cocok dengan daftar baru — taruh semua di fLocation
+      sel.value='';
+      document.getElementById('fLocation').value=loc;
+    }
+  } else {
+    document.getElementById('fLocation').value=loc;
+  }
   document.getElementById('fPic').value=d.pic||'';
   document.getElementById('fDateReport').value=d.date_report||'';
   // Muat semua defect item dari grup
@@ -1137,6 +1250,8 @@ async function loadDefects(manual){
     defects.forEach(d=>{ if(d.status==='Pending Part/Vendor') d.status='Pending'; });
     renderStats(); renderList();
     if(currentTab==='rooms') renderRoomsView();
+    if(currentTab==='public') renderSubAreaView('Public Area');
+    if(currentTab==='fb') renderSubAreaView('F&B');
   }catch(e){ showToast('Gagal memuat: '+e.message); }
 }
 function renderStats(){
@@ -1155,9 +1270,128 @@ function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.getElementById('viewDefects').style.display = tab==='defects'?'block':'none';
   document.getElementById('viewRooms').style.display   = tab==='rooms'?'block':'none';
-  // FAB hanya untuk tab defects
+  document.getElementById('viewPublic').style.display  = tab==='public'?'block':'none';
+  document.getElementById('viewFB').style.display      = tab==='fb'?'block':'none';
+  // FAB hanya untuk tab Laporan
   document.getElementById('fab').classList.toggle('hidden', tab!=='defects' || !canEdit());
   if(tab==='rooms') renderRoomsView();
+  if(tab==='public') renderSubAreaView('Public Area');
+  if(tab==='fb') renderSubAreaView('F&B');
+}
+
+// ===== SUB-AREA VIEW (Public Area & F&B) =====
+function getSubAreaStatus(area, subAreaName){
+  // Cocokkan defect berdasarkan area + mainPart (sebelum " — ")
+  const matches = defects.filter(d=>{
+    if(d.area!==area) return false;
+    const loc=d.location||'';
+    const splitIdx=loc.indexOf(' — ');
+    const main=splitIdx>=0?loc.slice(0,splitIdx):loc;
+    return main===subAreaName;
+  });
+  if(matches.length===0) return {cls:'r-clean', count:0, total:0, matches:[]};
+  const has=s=>matches.some(d=>d.status===s);
+  let cls='r-done';
+  if(has('Open')) cls='r-open';
+  else if(has('In Progress')) cls='r-prog';
+  else if(has('Pending')) cls='r-pend';
+  const active = matches.filter(d=>d.status!=='Done').length;
+  return {cls, count:active||matches.length, total:matches.length, matches};
+}
+function renderSubAreaView(area){
+  const list = area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
+  const summaryEl = area==='Public Area' ? document.getElementById('publicSummary') : document.getElementById('fbSummary');
+  const listEl = area==='Public Area' ? document.getElementById('publicList') : document.getElementById('fbList');
+  // Hitung summary
+  const counts={clean:0,open:0,prog:0,pend:0,done:0};
+  const map={};
+  list.forEach(name=>{
+    const s=getSubAreaStatus(area, name);
+    map[name]=s;
+    if(s.cls==='r-clean') counts.clean++;
+    else if(s.cls==='r-open') counts.open++;
+    else if(s.cls==='r-prog') counts.prog++;
+    else if(s.cls==='r-pend') counts.pend++;
+    else counts.done++;
+  });
+  summaryEl.innerHTML = `
+    <div class="rsum r-clean"><div class="rsum-n">${counts.clean}</div><div class="rsum-l">No Defect</div></div>
+    <div class="rsum r-open"><div class="rsum-n">${counts.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${counts.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${counts.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${counts.done}</div><div class="rsum-l">Done</div></div>`;
+  // List sub-area (urut sesuai array)
+  listEl.innerHTML = list.map(name=>{
+    const s=map[name];
+    const cntLabel = s.count>0 ? (s.count+' aktif') : 'No Defect';
+    return `<div class="subarea-item ${s.cls}" onclick="openSubAreaHistory('${escAttr(area)}','${escAttr(name)}')">
+      <div class="sa-name">${esc(name)}</div>
+      <div class="sa-cnt">${cntLabel}</div>
+    </div>`;
+  }).join('');
+}
+function escAttr(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// ===== SUB-AREA HISTORY MODAL (pakai room history modal yang ada) =====
+let currentSubAreaCtx=null; // {area, name}
+function openSubAreaHistory(area, name){
+  currentSubAreaCtx={area, name};
+  const s=getSubAreaStatus(area, name);
+  document.getElementById('roomHistTitle').textContent = (area==='Public Area'?'🏛️ ':'🍽️ ')+name;
+  document.getElementById('roomHistInfo').innerHTML = `<div class="ui-loc">${area==='Public Area'?'🏛️':'🍽️'} ${esc(name)}</div><div class="ui-desc">Status: <b>${s.matches.length===0?'✨ No Defect List (belum ada laporan)':s.matches.length+' defect tercatat'}</b></div>`;
+  const cnt={open:0,prog:0,pend:0,done:0};
+  s.matches.forEach(d=>{
+    if(d.status==='Open') cnt.open++;
+    else if(d.status==='In Progress') cnt.prog++;
+    else if(d.status==='Pending') cnt.pend++;
+    else if(d.status==='Done') cnt.done++;
+  });
+  document.getElementById('roomHistStats').innerHTML = `
+    <div class="rsum r-open"><div class="rsum-n">${cnt.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${cnt.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${cnt.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${cnt.done}</div><div class="rsum-l">Selesai</div></div>
+    <div class="rsum"><div class="rsum-n">${s.matches.length}</div><div class="rsum-l">Total</div></div>`;
+  const listEl=document.getElementById('roomHistList');
+  if(s.matches.length===0){
+    listEl.innerHTML='<div class="empty-state" style="padding:30px 20px;"><div class="ic">✨</div><h3>No Defect List</h3><p>Belum ada laporan defect untuk sub-area ini.</p></div>';
+  } else {
+    const sorted=[...s.matches].sort((a,b)=>new Date(b.updated_at||b.date_report||0)-new Date(a.updated_at||a.date_report||0));
+    listEl.innerHTML=sorted.map(d=>{
+      const cat=d.category?`<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>`:'';
+      return `<div class="defect-item-card" style="cursor:pointer;" onclick="closeRoomHistory();openUpdateDefect('${d.id}')">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+          ${cat}<span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
+          <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+        </div>
+        <div class="desc" style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(d.description)}</div>
+        <div class="meta" style="font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;">
+          ${d.date_report?`<span>📅 Lapor: ${fmtDate(d.date_report)}</span>`:''}
+          ${d.date_target?`<span>🎯 Target: ${fmtDate(d.date_target)}</span>`:''}
+          ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Hijack tombol "+ Tambah Defect" untuk sub-area context
+  const btn=document.getElementById('roomHistNewBtn');
+  btn.style.display = canEdit() ? 'block' : 'none';
+  btn.onclick = createDefectForSubArea;
+  btn.textContent = '+ Tambah Defect untuk Sub-Area Ini';
+  document.getElementById('roomHistoryModal').classList.add('show');
+}
+function createDefectForSubArea(){
+  if(!currentSubAreaCtx) return;
+  const {area, name} = currentSubAreaCtx;
+  closeRoomHistory();
+  if(!canEdit()){ showToast('Tidak ada akses'); return; }
+  openForm();
+  setTimeout(()=>{
+    setSeg('area', area);
+    onAreaChange();
+    const sel=document.getElementById('fSubAreaSelect');
+    if(sel){ sel.value=name; }
+  }, 60);
 }
 
 // ===== ROOMS VIEW =====
@@ -1194,7 +1428,7 @@ function renderRoomsView(){
     else counts.done++;
   });
   document.getElementById('roomsSummary').innerHTML = `
-    <div class="rsum r-clean"><div class="rsum-n">${counts.clean}</div><div class="rsum-l">Bersih</div></div>
+    <div class="rsum r-clean"><div class="rsum-n">${counts.clean}</div><div class="rsum-l">No Defect</div></div>
     <div class="rsum r-open"><div class="rsum-n">${counts.open}</div><div class="rsum-l">Open</div></div>
     <div class="rsum r-prog"><div class="rsum-n">${counts.prog}</div><div class="rsum-l">Progress</div></div>
     <div class="rsum r-pend"><div class="rsum-n">${counts.pend}</div><div class="rsum-l">Pending</div></div>
@@ -1230,7 +1464,7 @@ function openRoomHistory(roomNum){
   const typeName = room ? (TYPE_NAMES[room.t]||room.t) : '';
   const s=getRoomStatus(roomNum);
   document.getElementById('roomHistTitle').textContent = 'Kamar '+roomNum;
-  document.getElementById('roomHistInfo').innerHTML = `<div class="ui-loc">🛏️ Kamar ${roomNum} — ${typeName}</div><div class="ui-desc">Status: <b>${s.cls==='r-clean'?'✨ Bersih (tidak ada defect)':s.matches.length+' defect tercatat'}</b></div>`;
+  document.getElementById('roomHistInfo').innerHTML = `<div class="ui-loc">🛏️ Kamar ${roomNum} — ${typeName}</div><div class="ui-desc">Status: <b>${s.cls==='r-clean'?'✨ No Defect List (belum ada laporan)':s.matches.length+' defect tercatat'}</b></div>`;
   // Stats per kamar
   const cnt={open:0,prog:0,pend:0,done:0};
   (s.matches||[]).forEach(d=>{
@@ -1248,7 +1482,7 @@ function openRoomHistory(roomNum){
   // List defects (terbaru dulu)
   const listEl=document.getElementById('roomHistList');
   if(!s.matches || s.matches.length===0){
-    listEl.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><div class="ic">✨</div><h3>Kamar Bersih</h3><p>Belum ada defect tercatat untuk kamar ini.</p></div>';
+    listEl.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><div class="ic">✨</div><h3>No Defect List</h3><p>Belum ada laporan defect untuk kamar ini.</p></div>';
   } else {
     const sorted=[...s.matches].sort((a,b)=>new Date(b.updated_at||b.date_report||0)-new Date(a.updated_at||a.date_report||0));
     listEl.innerHTML = sorted.map(d=>{
@@ -1268,8 +1502,11 @@ function openRoomHistory(roomNum){
       </div>`;
     }).join('');
   }
+  const btn=document.getElementById('roomHistNewBtn');
+  btn.onclick = createDefectForRoom;
+  btn.textContent = '+ Tambah Defect untuk Kamar Ini';
   document.getElementById('roomHistoryModal').classList.add('show');
-  document.getElementById('roomHistNewBtn').style.display = canEdit() ? 'block' : 'none';
+  btn.style.display = canEdit() ? 'block' : 'none';
 }
 function closeRoomHistory(){ document.getElementById('roomHistoryModal').classList.remove('show'); currentRoomNum=null; }
 // Buat defect baru langsung dengan kamar terisi
