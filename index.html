@@ -201,6 +201,25 @@
   .seg-opt[data-v="Done"].active{background:var(--done);border-color:var(--done);}
   .seg-opt[data-v="HK"].active{background:#0ea5e9;border-color:#0ea5e9;}
   .seg-opt[data-v="ENG"].active{background:#f97316;border-color:#f97316;}
+  .seg-opt[data-v="ALL"].active{background:var(--accent);border-color:var(--accent);}
+  .seg-opt[data-v="admin"].active{background:#8b5cf6;border-color:#8b5cf6;}
+  .seg-opt[data-v="editor"].active{background:var(--accent);border-color:var(--accent);}
+  .seg-opt[data-v="viewer"].active{background:#64748b;border-color:#64748b;}
+  .user-item{display:flex;gap:11px;padding:13px 14px;background:var(--card);border:1px solid var(--line);border-radius:11px;font-size:13px;align-items:center;}
+  .user-item .ui-body{flex:1;min-width:0;line-height:1.45;}
+  .user-item .ui-email{font-weight:700;color:var(--text);font-size:13px;word-break:break-all;}
+  .user-item .ui-name{color:var(--muted);font-size:12px;margin-top:2px;}
+  .user-item .ui-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+  .user-item .ui-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:0.3px;}
+  .ui-tag.t-admin{background:rgba(139,92,246,0.18);color:#a78bfa;}
+  .ui-tag.t-editor{background:rgba(59,130,246,0.18);color:var(--accent2);}
+  .ui-tag.t-viewer{background:rgba(100,116,139,0.18);color:#94a3b8;}
+  .ui-tag.t-all{background:var(--card2);color:var(--text);}
+  .ui-tag.t-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
+  .ui-tag.t-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
+  .user-item .ui-acts{display:flex;gap:5px;flex-shrink:0;}
+  .user-item .ui-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:13px;cursor:pointer;}
+  .user-item .ui-btn.danger{color:var(--open);border-color:rgba(239,68,68,0.3);}
   .seg-opt[data-v="Low"].active{background:var(--p-low);border-color:var(--p-low);}
   .seg-opt[data-v="Medium"].active{background:var(--p-med);border-color:var(--p-med);}
   .seg-opt[data-v="High"].active{background:var(--p-high);border-color:var(--p-high);}
@@ -282,6 +301,7 @@
       <button class="icon-btn" onclick="loadDefects(true)" title="Refresh">↻</button>
       <button class="icon-btn" onclick="waRecap()" title="WhatsApp Recap">💬</button>
       <button class="icon-btn" id="logBtnTop" onclick="openLogModal()" title="Log Activity" style="display:none;">📜</button>
+      <button class="icon-btn" id="userBtnTop" onclick="openUserMgmt()" title="Manage User" style="display:none;">👥</button>
       <button class="icon-btn" onclick="doLogout()" title="Logout">⏏</button>
     </div>
   </div>
@@ -510,6 +530,55 @@
   </div>
 </div>
 
+<!-- User Management Modal (Admin only) -->
+<div class="modal-bg" id="userMgmtModal" onclick="if(event.target===this)closeUserMgmt()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h2>👥 Manage User</h2>
+      <button class="icon-btn" onclick="closeUserMgmt()">✕</button>
+    </div>
+    <div class="modal-body">
+      <button class="btn-primary" onclick="openUserForm()" style="margin-bottom:14px;">+ Tambah User</button>
+      <div id="userList" class="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- User Form Modal (Tambah/Edit) -->
+<div class="modal-bg" id="userFormModal" onclick="if(event.target===this)closeUserForm()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h2 id="userFormTitle">Tambah User</h2>
+      <button class="icon-btn" onclick="closeUserForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="userOriginalEmail">
+      <label class="fld">Email</label>
+      <input type="email" class="inp" id="ufEmail" placeholder="email@versehotels.com" autocomplete="off">
+      <label class="fld">Nama</label>
+      <input type="text" class="inp" id="ufName" placeholder="Nama lengkap user">
+      <label class="fld">Role</label>
+      <div class="seg" id="ufSegRole" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="urole" data-v="admin" onclick="ufPick(this)">👑 Admin</div>
+        <div class="seg-opt" data-g="urole" data-v="editor" onclick="ufPick(this)">✏️ Editor</div>
+        <div class="seg-opt" data-g="urole" data-v="viewer" onclick="ufPick(this)">👁️ Viewer</div>
+      </div>
+      <label class="fld">Divisi</label>
+      <div class="seg" id="ufSegDivision" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="udiv" data-v="ALL" onclick="ufPick(this)">🌐 ALL</div>
+        <div class="seg-opt" data-g="udiv" data-v="HK" onclick="ufPick(this)">🧹 HK</div>
+        <div class="seg-opt" data-g="udiv" data-v="ENG" onclick="ufPick(this)">🔧 ENG</div>
+      </div>
+      <div class="hint-txt" style="margin-bottom:14px;">
+        <b>Role:</b> Admin = COO (akses penuh + hapus). Editor = bisa CRUD defect. Viewer = lihat saja.<br>
+        <b>Divisi:</b> ALL = bebas semua kategori. HK = hanya Housekeeping. ENG = hanya Engineering.
+      </div>
+      <button class="btn-primary" id="ufSaveBtn" onclick="saveUser()">💾 Simpan</button>
+      <button class="btn-ghost" onclick="closeUserForm()">Batal</button>
+    </div>
+  </div>
+</div>
+
 <div class="viewer" id="viewer" onclick="closeViewer()">
   <button class="vclose" onclick="closeViewer()">✕</button>
   <button class="gal-nav" id="galPrev" onclick="galleryNav(event,-1)" style="left:14px;">‹</button>
@@ -534,7 +603,7 @@ const TYPE_NAMES = {'SPRD':'Superior Double','SPRT':'Superior Twin','DLXD':'Delu
 // Sub-area Public Area & F&B (urut sesuai permintaan)
 const PUBLIC_AREAS = [
   'Basement','Pos Security','Parkiran Motor','Parkiran Mobil Belakang','Parkiran Mobil Depan',
-  'Lobby Area','Lantai M','Lantai 5','Lantai 6','Lantai 7','Lantai 8',
+  'Lobby Area','Lantai M','Lantai 5','Lantai 6','Lantai 7','Lantai 8','Lantai 9',
   'Lantai 10','Lantai 11','Lantai 12','Lantai T','Lantai Attap','Lantai Roof TOP'
 ];
 const FB_AREAS = [
@@ -690,6 +759,132 @@ async function openHistory(defectId){
 }
 function closeHistoryModal(){ document.getElementById('historyModal').classList.remove('show'); }
 
+// ===== USER MANAGEMENT (admin only) =====
+let usersCache=[];
+function openUserMgmt(){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat mengelola user'); return; }
+  document.getElementById('userMgmtModal').classList.add('show');
+  loadUsers();
+}
+function closeUserMgmt(){ document.getElementById('userMgmtModal').classList.remove('show'); }
+
+async function loadUsers(){
+  showLoading('Memuat daftar user...');
+  try{
+    const {data,error}=await supa.from('defect_users').select('email,name,role,division').order('role',{ascending:true}).order('email',{ascending:true});
+    hideLoading();
+    if(error) throw new Error(error.message);
+    usersCache=data||[];
+    renderUsers();
+  }catch(e){ hideLoading(); showToast('Gagal memuat: '+e.message); }
+}
+function renderUsers(){
+  const cont=document.getElementById('userList');
+  if(usersCache.length===0){ cont.innerHTML='<div class="log-empty">Belum ada user</div>'; return; }
+  cont.innerHTML=usersCache.map(u=>{
+    const div=u.division||'ALL';
+    const roleClass={admin:'t-admin',editor:'t-editor',viewer:'t-viewer'}[u.role]||'t-editor';
+    const divClass={ALL:'t-all',HK:'t-hk',ENG:'t-eng'}[div]||'t-all';
+    const divIcon={ALL:'🌐',HK:'🧹',ENG:'🔧'}[div]||'🌐';
+    return `<div class="user-item">
+      <div class="ui-body">
+        <div class="ui-email">${esc(u.email)}</div>
+        ${u.name?`<div class="ui-name">${esc(u.name)}</div>`:''}
+        <div class="ui-tags">
+          <span class="ui-tag ${roleClass}">${u.role||'editor'}</span>
+          <span class="ui-tag ${divClass}">${divIcon} ${div}</span>
+        </div>
+      </div>
+      <div class="ui-acts">
+        <button class="ui-btn" onclick='editUser(${JSON.stringify(u.email).replace(/'/g,"\\'")})' title="Edit">✏️</button>
+        <button class="ui-btn danger" onclick='deleteUser(${JSON.stringify(u.email).replace(/'/g,"\\'")})' title="Hapus">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openUserForm(){
+  document.getElementById('userFormTitle').textContent='Tambah User';
+  document.getElementById('userOriginalEmail').value='';
+  document.getElementById('ufEmail').value='';
+  document.getElementById('ufEmail').disabled=false;
+  document.getElementById('ufName').value='';
+  document.querySelectorAll('#ufSegRole .seg-opt, #ufSegDivision .seg-opt').forEach(o=>o.classList.remove('active'));
+  // Default: editor + ALL
+  document.querySelector('#ufSegRole .seg-opt[data-v="editor"]').classList.add('active');
+  document.querySelector('#ufSegDivision .seg-opt[data-v="ALL"]').classList.add('active');
+  document.getElementById('userFormModal').classList.add('show');
+}
+function closeUserForm(){ document.getElementById('userFormModal').classList.remove('show'); }
+function ufPick(el){
+  const g=el.dataset.g;
+  document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+}
+function editUser(email){
+  const u=usersCache.find(x=>x.email===email); if(!u) return;
+  document.getElementById('userFormTitle').textContent='Edit User';
+  document.getElementById('userOriginalEmail').value=u.email;
+  document.getElementById('ufEmail').value=u.email;
+  document.getElementById('ufEmail').disabled=true; // email tidak boleh diubah (primary key)
+  document.getElementById('ufName').value=u.name||'';
+  document.querySelectorAll('#ufSegRole .seg-opt, #ufSegDivision .seg-opt').forEach(o=>o.classList.remove('active'));
+  const r=u.role||'editor';
+  const d=u.division||'ALL';
+  document.querySelector(`#ufSegRole .seg-opt[data-v="${r}"]`)?.classList.add('active');
+  document.querySelector(`#ufSegDivision .seg-opt[data-v="${d}"]`)?.classList.add('active');
+  document.getElementById('userFormModal').classList.add('show');
+}
+
+async function saveUser(){
+  const originalEmail=document.getElementById('userOriginalEmail').value;
+  const email=document.getElementById('ufEmail').value.trim().toLowerCase();
+  const name=document.getElementById('ufName').value.trim();
+  const role=document.querySelector('#ufSegRole .seg-opt.active')?.dataset.v;
+  const division=document.querySelector('#ufSegDivision .seg-opt.active')?.dataset.v;
+  if(!email){ showToast('Email wajib diisi'); return; }
+  if(!email.includes('@')){ showToast('Email tidak valid'); return; }
+  if(!role){ showToast('Pilih role dulu'); return; }
+  if(!division){ showToast('Pilih divisi dulu'); return; }
+  // Cegah admin menghilangkan dirinya sendiri jadi non-admin (lockout)
+  if(originalEmail===currentUser.email && role!=='admin'){
+    if(!confirm('⚠️ Anda mengubah role diri sendiri jadi '+role.toUpperCase()+'.\nSetelah disimpan, Anda tidak akan bisa mengelola user lagi.\nLanjut?')) return;
+  }
+  document.getElementById('ufSaveBtn').disabled=true;
+  showLoading('Menyimpan user...');
+  try{
+    if(originalEmail && originalEmail!==email){
+      // Email tidak bisa diubah (disabled di form), tapi kalau somehow berubah, tolak
+      throw new Error('Email tidak bisa diubah. Hapus user lalu tambah baru.');
+    }
+    const row={email, name:name||null, role, division};
+    const {error}=await supa.from('defect_users').upsert(row);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    document.getElementById('ufSaveBtn').disabled=false;
+    closeUserForm();
+    showToast(originalEmail?'✅ User diperbarui':'✅ User ditambahkan');
+    await loadUsers();
+  }catch(e){
+    hideLoading();
+    document.getElementById('ufSaveBtn').disabled=false;
+    showToast('Gagal: '+e.message);
+  }
+}
+
+async function deleteUser(email){
+  if(email===currentUser.email){ showToast('⛔ Tidak bisa hapus akun Anda sendiri'); return; }
+  if(!confirm('Hapus user "'+email+'"?\nUser ini tidak akan bisa login lagi.')) return;
+  showLoading('Menghapus user...');
+  try{
+    const {error}=await supa.from('defect_users').delete().eq('email',email);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    showToast('🗑️ User dihapus');
+    await loadUsers();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
+}
+
 
 // ===== ROOM DROPDOWN =====
 function buildRoomDropdown(){
@@ -779,6 +974,7 @@ async function enterApp(){
   document.getElementById('rolePill').textContent = currentUser.role;
   document.getElementById('fab').classList.toggle('hidden', !canEdit());
   document.getElementById('logBtnTop').style.display = currentUser.role==='admin' ? 'flex' : 'none';
+  document.getElementById('userBtnTop').style.display = currentUser.role==='admin' ? 'flex' : 'none';
   buildRoomDropdown();
   await loadDefects();
 }
