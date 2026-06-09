@@ -1044,6 +1044,19 @@ function parsePhotos(val){
   }
   return [];
 }
+// Render photo strip 3-kolom (Defect/Progress/After) untuk modal history
+function renderPhotoStripFor(d, label){
+  const cell = (val, stageLabel) => {
+    const arr=parsePhotos(val);
+    if(arr.length){
+      const more = arr.length>1 ? `<span class="ph-count">+${arr.length-1}</span>` : '';
+      const ctx = stageLabel+' — '+d.location;
+      return `<div class="ph" onclick="event.stopPropagation();openGallery(${JSON.stringify(arr).replace(/"/g,'&quot;')},0,${JSON.stringify(ctx).replace(/"/g,'&quot;')})"><img src="${arr[0]}" alt="${stageLabel}">${more}<span class="ph-label">${stageLabel}</span></div>`;
+    }
+    return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${stageLabel}</span></div>`;
+  };
+  return `<div class="photo-strip" style="padding:8px 0 0;">${cell(d.photo_defect,'Defect')}${cell(d.photo_progress,'Progress')}${cell(d.photo_after,'After')}</div>`;
+}
 
 // ===== SEGMENTED (header area only) =====
 function pickSeg(el){ const g=el.dataset.g; document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.remove('active')); el.classList.add('active'); }
@@ -1560,6 +1573,7 @@ function openSubAreaHistory(area, name){
           ${d.date_target?`<span>🎯 Target: ${fmtDate(d.date_target)}</span>`:''}
           ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
         </div>
+        ${renderPhotoStripFor(d)}
       </div>`;
     }).join('');
   }
@@ -1689,6 +1703,7 @@ function openRoomHistory(roomNum){
           ${d.date_target?`<span>🎯 Target: ${fmtDate(d.date_target)}</span>`:''}
           ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
         </div>
+        ${renderPhotoStripFor(d)}
       </div>`;
     }).join('');
   }
