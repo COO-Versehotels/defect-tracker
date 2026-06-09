@@ -307,12 +307,6 @@
         <input type="text" id="searchBox" class="search-inp" placeholder="Cari nomor kamar, area, atau keterangan defect..." oninput="onSearchInput()">
         <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">✕</button>
       </div>
-      <div class="filters" id="areaFilters">
-        <button class="chip active" data-area="all" onclick="setAreaFilter('all')">Semua Area</button>
-        <button class="chip" data-area="Room" onclick="setAreaFilter('Room')">🛏️ Room</button>
-        <button class="chip" data-area="Public Area" onclick="setAreaFilter('Public Area')">🏛️ Public Area</button>
-        <button class="chip" data-area="F&B" onclick="setAreaFilter('F&B')">🍽️ F&B</button>
-      </div>
       <div class="filters" id="catFilters">
         <button class="chip active" data-cat="all" onclick="setCatFilter('all')">Semua Divisi</button>
         <button class="chip" data-cat="HK" onclick="setCatFilter('HK')">🧹 Housekeeping</button>
@@ -1543,6 +1537,7 @@ function renderList(){
   if(currentArea!=='all') list=list.filter(d=>d.area===currentArea);
   if(currentCat!=='all') list=list.filter(d=>d.category===currentCat);
   if(currentStatusFilter) list=list.filter(d=>d.status===currentStatusFilter);
+  else list=list.filter(d=>d.status!=='Done'); // default: sembunyikan Done
   // Search filter: cocokkan ke location, area, description, pic, category
   if(currentSearch){
     const q=currentSearch;
@@ -1557,8 +1552,9 @@ function renderList(){
     let msg;
     if(defects.length===0) msg = canEdit()?'Tap tombol + untuk menambah laporan pertama.':'Belum ada defect yang dilaporkan.';
     else if(currentSearch) msg = 'Tidak ada hasil untuk pencarian "<b>'+esc(currentSearch)+'</b>"';
+    else if(!currentStatusFilter) msg = 'Tidak ada defect aktif. 🎉<br><small>Defect yang sudah Done disembunyikan. Tap kotak "Done" di atas untuk lihat.</small>';
     else msg = 'Tidak ada defect untuk filter ini.';
-    cont.innerHTML=`<div class="empty-state"><div class="ic">${currentSearch?'🔍':'📋'}</div><h3>${defects.length===0?'Belum ada defect':'Tidak ditemukan'}</h3><p>${msg}</p></div>`;
+    cont.innerHTML=`<div class="empty-state"><div class="ic">${currentSearch?'🔍':'✨'}</div><h3>${defects.length===0?'Belum ada defect':'Tidak ditemukan'}</h3><p>${msg}</p></div>`;
     return;
   }
   // Kelompokkan per report_id (atau per id kalau tidak ada report_id)
