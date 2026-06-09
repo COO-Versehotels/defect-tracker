@@ -49,6 +49,47 @@
   .stat .l{font-size:10px;color:var(--muted);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
   .stat.s-open .n{color:var(--open);}.stat.s-prog .n{color:var(--prog);}.stat.s-pend .n{color:var(--pend);}.stat.s-done .n{color:var(--done);}
   .filters{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
+  .tab-switch{display:flex;gap:6px;margin-bottom:18px;background:var(--card);padding:5px;border-radius:14px;border:1px solid var(--line);}
+  .tab-btn{flex:1;padding:11px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .tab-btn.active{background:var(--accent);color:white;box-shadow:0 4px 12px rgba(59,130,246,0.35);}
+  .rooms-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;}
+  .rsum{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center;}
+  .rsum .rsum-n{font-size:20px;font-weight:800;font-family:'Spline Sans Mono',monospace;line-height:1;}
+  .rsum .rsum-l{font-size:9px;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+  .rsum.r-clean .rsum-n{color:var(--done);}
+  .rsum.r-open .rsum-n{color:var(--open);}
+  .rsum.r-prog .rsum-n{color:var(--prog);}
+  .rsum.r-pend .rsum-n{color:var(--pend);}
+  .rsum.r-done .rsum-n{color:#94a3b8;}
+  .rooms-legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;font-size:11px;color:var(--muted);margin-bottom:16px;padding:10px;background:var(--card);border-radius:11px;border:1px solid var(--line);}
+  .rooms-legend span{display:flex;align-items:center;gap:5px;}
+  .rdot{display:inline-block;width:12px;height:12px;border-radius:4px;}
+  .rdot.r-clean{background:var(--done);}
+  .rdot.r-open{background:var(--open);}
+  .rdot.r-prog{background:var(--prog);}
+  .rdot.r-pend{background:var(--pend);}
+  .rdot.r-done{background:#64748b;}
+  .floor-block{margin-bottom:18px;}
+  .floor-title{font-size:12px;font-weight:800;color:var(--accent2);letter-spacing:0.4px;margin-bottom:10px;text-transform:uppercase;}
+  .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px;}
+  .room-cell{aspect-ratio:1;border-radius:10px;border:1.5px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+  .room-cell:active{transform:scale(0.92);}
+  .room-cell .rc-num{font-size:13px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:var(--text);}
+  .room-cell .rc-tag{font-size:8px;font-weight:700;color:var(--muted2);}
+  .room-cell .rc-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;}
+  .room-cell.r-clean{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.06);}
+  .room-cell.r-open{border-color:var(--open);background:rgba(239,68,68,0.10);}
+  .room-cell.r-prog{border-color:var(--prog);background:rgba(245,158,11,0.10);}
+  .room-cell.r-pend{border-color:var(--pend);background:rgba(168,85,247,0.10);}
+  .room-cell.r-done{border-color:rgba(100,116,139,0.5);background:rgba(100,116,139,0.08);}
+  .room-cell .rc-cnt{position:absolute;bottom:3px;right:4px;font-size:9px;font-weight:800;color:var(--text);background:rgba(0,0,0,0.4);border-radius:5px;padding:1px 4px;line-height:1;}
+  .search-wrap{position:relative;margin-bottom:14px;}
+  .search-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;opacity:0.6;pointer-events:none;}
+  .search-inp{width:100%;padding:12px 40px 12px 40px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;color:var(--text);font-size:14px;font-family:inherit;}
+  .search-inp:focus{outline:none;border-color:var(--accent);}
+  .search-inp::placeholder{color:var(--muted2);}
+  .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:8px;background:var(--card2);color:var(--muted);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .search-clear:hover{background:var(--line2);color:var(--text);}
   .chip{flex-shrink:0;padding:8px 15px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;}
   .chip.active{background:var(--accent);border-color:var(--accent);color:white;}
   .defect-list{display:flex;flex-direction:column;gap:13px;}
@@ -230,26 +271,69 @@
     </div>
   </div>
   <div class="container">
-    <div class="stats" id="stats">
-      <div class="stat s-open" data-f="Open" onclick="toggleFilter('Open')"><div class="n" id="cOpen">0</div><div class="l">Open</div></div>
-      <div class="stat s-prog" data-f="In Progress" onclick="toggleFilter('In Progress')"><div class="n" id="cProg">0</div><div class="l">Progress</div></div>
-      <div class="stat s-pend" data-f="Pending" onclick="toggleFilter('Pending')"><div class="n" id="cPend">0</div><div class="l">Pending</div></div>
-      <div class="stat s-done" data-f="Done" onclick="toggleFilter('Done')"><div class="n" id="cDone">0</div><div class="l">Done</div></div>
+    <!-- Tab Switcher -->
+    <div class="tab-switch">
+      <button class="tab-btn active" data-tab="defects" onclick="switchTab('defects')">📋 Laporan Defect</button>
+      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">🛏️ Kondisi Kamar</button>
     </div>
-    <div class="filters" id="areaFilters">
-      <button class="chip active" data-area="all" onclick="setAreaFilter('all')">Semua Area</button>
-      <button class="chip" data-area="Room" onclick="setAreaFilter('Room')">🛏️ Room</button>
-      <button class="chip" data-area="Public Area" onclick="setAreaFilter('Public Area')">🏛️ Public Area</button>
-      <button class="chip" data-area="F&B" onclick="setAreaFilter('F&B')">🍽️ F&B</button>
+
+    <!-- TAB 1: Defect List (existing) -->
+    <div id="viewDefects">
+      <div class="stats" id="stats">
+        <div class="stat s-open" data-f="Open" onclick="toggleFilter('Open')"><div class="n" id="cOpen">0</div><div class="l">Open</div></div>
+        <div class="stat s-prog" data-f="In Progress" onclick="toggleFilter('In Progress')"><div class="n" id="cProg">0</div><div class="l">Progress</div></div>
+        <div class="stat s-pend" data-f="Pending" onclick="toggleFilter('Pending')"><div class="n" id="cPend">0</div><div class="l">Pending</div></div>
+        <div class="stat s-done" data-f="Done" onclick="toggleFilter('Done')"><div class="n" id="cDone">0</div><div class="l">Done</div></div>
+      </div>
+      <div class="search-wrap">
+        <span class="search-ic">🔍</span>
+        <input type="text" id="searchBox" class="search-inp" placeholder="Cari nomor kamar, area, atau keterangan defect..." oninput="onSearchInput()">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">✕</button>
+      </div>
+      <div class="filters" id="areaFilters">
+        <button class="chip active" data-area="all" onclick="setAreaFilter('all')">Semua Area</button>
+        <button class="chip" data-area="Room" onclick="setAreaFilter('Room')">🛏️ Room</button>
+        <button class="chip" data-area="Public Area" onclick="setAreaFilter('Public Area')">🏛️ Public Area</button>
+        <button class="chip" data-area="F&B" onclick="setAreaFilter('F&B')">🍽️ F&B</button>
+      </div>
+      <div class="filters" id="catFilters">
+        <button class="chip active" data-cat="all" onclick="setCatFilter('all')">Semua Divisi</button>
+        <button class="chip" data-cat="HK" onclick="setCatFilter('HK')">🧹 Housekeeping</button>
+        <button class="chip" data-cat="ENG" onclick="setCatFilter('ENG')">🔧 Engineering</button>
+      </div>
+      <div class="defect-list" id="defectList"></div>
     </div>
-    <div class="filters" id="catFilters">
-      <button class="chip active" data-cat="all" onclick="setCatFilter('all')">Semua Divisi</button>
-      <button class="chip" data-cat="HK" onclick="setCatFilter('HK')">🧹 Housekeeping</button>
-      <button class="chip" data-cat="ENG" onclick="setCatFilter('ENG')">🔧 Engineering</button>
+
+    <!-- TAB 2: Kondisi Kamar (rooms grid) -->
+    <div id="viewRooms" style="display:none;">
+      <div class="rooms-summary" id="roomsSummary"></div>
+      <div class="rooms-legend">
+        <span><i class="rdot r-clean"></i> Bersih</span>
+        <span><i class="rdot r-open"></i> Open</span>
+        <span><i class="rdot r-prog"></i> Progress</span>
+        <span><i class="rdot r-pend"></i> Pending</span>
+        <span><i class="rdot r-done"></i> Selesai</span>
+      </div>
+      <div class="rooms-floors" id="roomsFloors"></div>
     </div>
-    <div class="defect-list" id="defectList"></div>
   </div>
   <button class="fab" id="fab" onclick="openForm()">+</button>
+</div>
+
+<!-- Room History Modal -->
+<div class="modal-bg" id="roomHistoryModal" onclick="if(event.target===this)closeRoomHistory()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h2 id="roomHistTitle">History Kamar</h2>
+      <button class="icon-btn" onclick="closeRoomHistory()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="upd-info" id="roomHistInfo"></div>
+      <div class="rooms-summary" id="roomHistStats" style="margin-bottom:14px;"></div>
+      <div id="roomHistList"></div>
+      <button class="btn-primary" id="roomHistNewBtn" onclick="createDefectForRoom()" style="margin-top:14px;">+ Tambah Defect untuk Kamar Ini</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="formModal">
@@ -413,6 +497,7 @@ let defects = [];
 let currentArea = 'all';
 let currentCat = 'all';
 let currentStatusFilter = null;
+let currentSearch = '';
 let formDefects = []; // working list of defect items in the form
 // each item: {key, category, description, priority, status, dateTarget, pendingReason,
 //             progressNote, afterNote, photos:{defect:[],progress:[],after:[]}, existingId}
@@ -1051,6 +1136,7 @@ async function loadDefects(manual){
     // Kompatibilitas: data lama "Pending Part/Vendor" → "Pending"
     defects.forEach(d=>{ if(d.status==='Pending Part/Vendor') d.status='Pending'; });
     renderStats(); renderList();
+    if(currentTab==='rooms') renderRoomsView();
   }catch(e){ showToast('Gagal memuat: '+e.message); }
 }
 function renderStats(){
@@ -1061,14 +1147,181 @@ function renderStats(){
   document.getElementById('cPend').textContent=c['Pending'];
   document.getElementById('cDone').textContent=c['Done'];
 }
+
+// ===== TAB SWITCHER =====
+let currentTab='defects';
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.getElementById('viewDefects').style.display = tab==='defects'?'block':'none';
+  document.getElementById('viewRooms').style.display   = tab==='rooms'?'block':'none';
+  // FAB hanya untuk tab defects
+  document.getElementById('fab').classList.toggle('hidden', tab!=='defects' || !canEdit());
+  if(tab==='rooms') renderRoomsView();
+}
+
+// ===== ROOMS VIEW =====
+// Hitung status agregat per kamar (prioritas: Open > Progress > Pending > Done > Clean)
+function getRoomStatus(roomNum){
+  // Cocokkan defect yang lokasinya mengandung nomor kamar ini
+  const matches = defects.filter(d=>{
+    if(d.area!=='Room') return false;
+    const m=(d.location||'').match(/(\d+)/);
+    return m && m[1]===roomNum;
+  });
+  if(matches.length===0) return {cls:'r-clean', count:0, hasOpen:false};
+  const has = s=>matches.some(d=>d.status===s);
+  let cls='r-done';
+  if(has('Open')) cls='r-open';
+  else if(has('In Progress')) cls='r-prog';
+  else if(has('Pending')) cls='r-pend';
+  // Hitung defect aktif (bukan Done)
+  const active = matches.filter(d=>d.status!=='Done').length;
+  return {cls, count:active||matches.length, total:matches.length, matches};
+}
+
+function renderRoomsView(){
+  // Summary
+  const counts={clean:0,open:0,prog:0,pend:0,done:0};
+  const roomStatusMap={};
+  ROOMS.forEach(r=>{
+    const s=getRoomStatus(r.r);
+    roomStatusMap[r.r]=s;
+    if(s.cls==='r-clean') counts.clean++;
+    else if(s.cls==='r-open') counts.open++;
+    else if(s.cls==='r-prog') counts.prog++;
+    else if(s.cls==='r-pend') counts.pend++;
+    else counts.done++;
+  });
+  document.getElementById('roomsSummary').innerHTML = `
+    <div class="rsum r-clean"><div class="rsum-n">${counts.clean}</div><div class="rsum-l">Bersih</div></div>
+    <div class="rsum r-open"><div class="rsum-n">${counts.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${counts.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${counts.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${counts.done}</div><div class="rsum-l">Done</div></div>`;
+
+  // Group by floor (digit pertama nomor kamar)
+  const byFloor={};
+  ROOMS.forEach(r=>{
+    const floor = r.r.slice(0,-2) || r.r.slice(0,1); // mis "501" → "5", "1206" → "12"
+    if(!byFloor[floor]) byFloor[floor]=[];
+    byFloor[floor].push(r);
+  });
+  const floors=Object.keys(byFloor).sort((a,b)=>parseInt(a)-parseInt(b));
+  document.getElementById('roomsFloors').innerHTML = floors.map(f=>{
+    const rooms=byFloor[f].sort((a,b)=>parseInt(a.r)-parseInt(b.r));
+    const cells=rooms.map(r=>{
+      const s=roomStatusMap[r.r];
+      const cnt = s.count>0 ? `<span class="rc-cnt">${s.count}</span>` : '';
+      return `<div class="room-cell ${s.cls}" onclick="openRoomHistory('${r.r}')"><span class="rc-num">${r.r}</span><span class="rc-tag">${r.t}</span>${cnt}</div>`;
+    }).join('');
+    return `<div class="floor-block">
+      <div class="floor-title">Lantai ${parseInt(f)}  ·  ${rooms.length} kamar</div>
+      <div class="room-grid">${cells}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== ROOM HISTORY MODAL =====
+let currentRoomNum=null;
+function openRoomHistory(roomNum){
+  currentRoomNum=roomNum;
+  const room = ROOMS.find(r=>r.r===roomNum);
+  const typeName = room ? (TYPE_NAMES[room.t]||room.t) : '';
+  const s=getRoomStatus(roomNum);
+  document.getElementById('roomHistTitle').textContent = 'Kamar '+roomNum;
+  document.getElementById('roomHistInfo').innerHTML = `<div class="ui-loc">🛏️ Kamar ${roomNum} — ${typeName}</div><div class="ui-desc">Status: <b>${s.cls==='r-clean'?'✨ Bersih (tidak ada defect)':s.matches.length+' defect tercatat'}</b></div>`;
+  // Stats per kamar
+  const cnt={open:0,prog:0,pend:0,done:0};
+  (s.matches||[]).forEach(d=>{
+    if(d.status==='Open') cnt.open++;
+    else if(d.status==='In Progress') cnt.prog++;
+    else if(d.status==='Pending') cnt.pend++;
+    else if(d.status==='Done') cnt.done++;
+  });
+  document.getElementById('roomHistStats').innerHTML = `
+    <div class="rsum r-open"><div class="rsum-n">${cnt.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${cnt.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${cnt.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${cnt.done}</div><div class="rsum-l">Selesai</div></div>
+    <div class="rsum"><div class="rsum-n">${s.matches?s.matches.length:0}</div><div class="rsum-l">Total</div></div>`;
+  // List defects (terbaru dulu)
+  const listEl=document.getElementById('roomHistList');
+  if(!s.matches || s.matches.length===0){
+    listEl.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><div class="ic">✨</div><h3>Kamar Bersih</h3><p>Belum ada defect tercatat untuk kamar ini.</p></div>';
+  } else {
+    const sorted=[...s.matches].sort((a,b)=>new Date(b.updated_at||b.date_report||0)-new Date(a.updated_at||a.date_report||0));
+    listEl.innerHTML = sorted.map(d=>{
+      const cat = d.category ? `<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>` : '';
+      return `<div class="defect-item-card" style="cursor:pointer;" onclick="closeRoomHistory();openUpdateDefect('${d.id}')">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+          ${cat}
+          <span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
+          <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+        </div>
+        <div class="desc" style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(d.description)}</div>
+        <div class="meta" style="font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;">
+          ${d.date_report?`<span>📅 Lapor: ${fmtDate(d.date_report)}</span>`:''}
+          ${d.date_target?`<span>🎯 Target: ${fmtDate(d.date_target)}</span>`:''}
+          ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('roomHistoryModal').classList.add('show');
+  document.getElementById('roomHistNewBtn').style.display = canEdit() ? 'block' : 'none';
+}
+function closeRoomHistory(){ document.getElementById('roomHistoryModal').classList.remove('show'); currentRoomNum=null; }
+// Buat defect baru langsung dengan kamar terisi
+function createDefectForRoom(){
+  const rn=currentRoomNum;
+  closeRoomHistory();
+  if(!canEdit()){ showToast('Tidak ada akses'); return; }
+  openForm();
+  // Set area & kamar setelah form siap
+  setTimeout(()=>{
+    setSeg('area','Room');
+    onAreaChange();
+    const sel=document.getElementById('fRoomSelect');
+    if(sel){ sel.value=rn; onRoomSelect(); }
+  }, 60);
+}
+
+// ===== SEARCH =====
+function onSearchInput(){
+  const v = document.getElementById('searchBox').value;
+  currentSearch = v.toLowerCase().trim();
+  document.getElementById('searchClear').style.display = v ? 'flex' : 'none';
+  renderList();
+}
+function clearSearch(){
+  document.getElementById('searchBox').value='';
+  currentSearch='';
+  document.getElementById('searchClear').style.display='none';
+  renderList();
+}
+
 function renderList(){
   let list=defects;
   if(currentArea!=='all') list=list.filter(d=>d.area===currentArea);
   if(currentCat!=='all') list=list.filter(d=>d.category===currentCat);
   if(currentStatusFilter) list=list.filter(d=>d.status===currentStatusFilter);
+  // Search filter: cocokkan ke location, area, description, pic, category
+  if(currentSearch){
+    const q=currentSearch;
+    list=list.filter(d=>{
+      const hay = [d.location, d.area, d.description, d.pic, d.category]
+        .map(s=>(s||'').toLowerCase()).join(' | ');
+      return hay.includes(q);
+    });
+  }
   const cont=document.getElementById('defectList');
   if(list.length===0){
-    cont.innerHTML=`<div class="empty-state"><div class="ic">📋</div><h3>Belum ada defect</h3><p>${defects.length===0?(canEdit()?'Tap tombol + untuk menambah laporan pertama.':'Belum ada defect yang dilaporkan.'):'Tidak ada defect untuk filter ini.'}</p></div>`;
+    let msg;
+    if(defects.length===0) msg = canEdit()?'Tap tombol + untuk menambah laporan pertama.':'Belum ada defect yang dilaporkan.';
+    else if(currentSearch) msg = 'Tidak ada hasil untuk pencarian "<b>'+esc(currentSearch)+'</b>"';
+    else msg = 'Tidak ada defect untuk filter ini.';
+    cont.innerHTML=`<div class="empty-state"><div class="ic">${currentSearch?'🔍':'📋'}</div><h3>${defects.length===0?'Belum ada defect':'Tidak ditemukan'}</h3><p>${msg}</p></div>`;
     return;
   }
   // Kelompokkan per report_id (atau per id kalau tidak ada report_id)
