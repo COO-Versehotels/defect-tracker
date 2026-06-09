@@ -128,6 +128,9 @@
   .cat-badge.cat-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
   .pending-banner{margin:0 16px 12px;padding:9px 12px;background:var(--pend-bg);border:1px solid rgba(168,85,247,0.3);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.5;}
   .done-banner{margin:0 16px 12px;padding:9px 12px;background:var(--done-bg);border:1px solid rgba(34,197,94,0.3);border-radius:9px;font-size:12px;color:#86efac;line-height:1.5;}
+  .byline{margin:8px 16px 10px;padding:8px 11px;background:var(--card2);border:1px solid var(--line);border-radius:9px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:4px;line-height:1.4;}
+  .byline span{display:block;}
+  .byline b{color:var(--text);font-weight:600;}
   .log-summary{padding:11px 14px;background:var(--card2);border:1px solid var(--line);border-radius:11px;margin-bottom:14px;font-size:12px;color:var(--muted);}
   .log-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;}
   .log-item{display:flex;gap:11px;padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:11px;font-size:13px;align-items:flex-start;}
@@ -1044,6 +1047,22 @@ function parsePhotos(val){
   }
   return [];
 }
+// Format info pembuat & update terakhir untuk ditampilkan di kartu/history
+function bylineHtml(d){
+  const created = d.created_by ? `<span>📝 Dibuat oleh <b>${esc(d.created_by)}</b>${d.date_report?' · '+fmtDate(d.date_report):''}</span>` : '';
+  // Tampilkan update terakhir kalau ada updated_by DAN berbeda dari created_by atau ada updated_at
+  let updated = '';
+  if(d.updated_by && d.updated_at){
+    // Tampilkan kalau berbeda dari created (kalau sama, asumsikan belum pernah diupdate)
+    const isJustCreated = d.created_by===d.updated_by && (!d.date_report || d.updated_at.slice(0,10)===d.date_report);
+    if(!isJustCreated){
+      updated = `<span>🔄 Update oleh <b>${esc(d.updated_by)}</b> · ${fmtLogTime(d.updated_at)}</span>`;
+    }
+  }
+  if(!created && !updated) return '';
+  return `<div class="byline">${created}${updated}</div>`;
+}
+
 // Render photo strip 3-kolom (Defect/Progress/After) untuk modal history
 function renderPhotoStripFor(d, label){
   const cell = (val, stageLabel) => {
@@ -1219,6 +1238,8 @@ async function saveDefect(){
         photo_defect:photoCols.defect, photo_progress:photoCols.progress, photo_after:photoCols.after
       };
       if(!d.existingId) row.created_by=currentUser.email;
+      row.updated_by=currentUser.email;
+      row.updated_at=new Date().toISOString();
       const {error}=await supa.from('defects').upsert(row);
       if(error) throw new Error(error.message);
       // Log per item
@@ -1418,7 +1439,9 @@ async function saveUpdate(){
       pending_reason: newStatus==='Pending'?pendingReason:null,
       done_by: newStatus==='Done'?doneBy:null,
       date_target: finalTarget,
-      photo_progress:cols.progress, photo_after:cols.after
+      photo_progress:cols.progress, photo_after:cols.after,
+      updated_by:currentUser.email,
+      updated_at:new Date().toISOString()
     };
     const {error}=await supa.from('defects').update(update).eq('id',id);
     if(error) throw new Error(error.message);
@@ -1574,6 +1597,8 @@ function openSubAreaHistory(area, name){
           ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
         </div>
         ${renderPhotoStripFor(d)}
+        ${bylineHtml(d)}
+        ${currentUser&&currentUser.role==='admin'?`<div style="display:flex;justify-content:flex-end;padding:0 4px 4px;"><button class="foot-btn danger" onclick="event.stopPropagation();deleteFromHistory('${d.id}')" style="padding:7px 14px;font-size:12px;">🗑️ Hapus Defect Ini</button></div>`:''}
       </div>`;
     }).join('');
   }
@@ -1704,6 +1729,8 @@ function openRoomHistory(roomNum){
           ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
         </div>
         ${renderPhotoStripFor(d)}
+        ${bylineHtml(d)}
+        ${currentUser&&currentUser.role==='admin'?`<div style="display:flex;justify-content:flex-end;padding:0 4px 4px;"><button class="foot-btn danger" onclick="event.stopPropagation();deleteFromHistory('${d.id}')" style="padding:7px 14px;font-size:12px;">🗑️ Hapus Defect Ini</button></div>`:''}
       </div>`;
     }).join('');
   }
@@ -1714,6 +1741,13 @@ function openRoomHistory(roomNum){
   btn.style.display = canEdit() ? 'block' : 'none';
 }
 function closeRoomHistory(){ document.getElementById('roomHistoryModal').classList.remove('show'); currentRoomNum=null; }
+// Hapus defect dari modal history (admin only)
+async function deleteFromHistory(id){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat menghapus'); return; }
+  closeRoomHistory();
+  // Beri sedikit waktu animasi tutup, lalu trigger delete (yg akan tampilkan confirm sendiri)
+  setTimeout(()=>deleteDefect(id), 150);
+}
 // Buat defect baru langsung dengan kamar terisi
 function createDefectForRoom(){
   const rn=currentRoomNum;
@@ -1814,6 +1848,7 @@ function renderList(){
           ${photoCell(d,d.photo_progress,'Progress','progress')}
           ${photoCell(d,d.photo_after,'After','after')}
         </div>
+        ${bylineHtml(d)}
         <div class="defect-foot">
           <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'} style="flex:3;">🛠️ Update Defect</button>
           ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn" onclick="openHistory('${d.id}')" title="History">📜</button>`:''}
