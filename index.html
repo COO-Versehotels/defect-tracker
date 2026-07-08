@@ -2113,7 +2113,7 @@ function renderList(){
         ${bylineHtml(d)}
         <div class="defect-foot">
           <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'} style="flex:3;">🛠️ Update Defect</button>
-          ${d.status==='Pending'?`<button class="foot-btn" onclick="event.stopPropagation();openMaterialModal('${d.id}')" title="Kebutuhan Barang" style="flex:2;">📦 Barang</button>`:''}
+          ${d.status==='Pending'?`<button class="foot-btn" onclick="event.stopPropagation();openMaterialModal('${d.id}')" title="Kebutuhan Barang" style="flex:2;font-size:11px;">📦 Kebutuhan Barang</button>`:''}
           ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn" onclick="openHistory('${d.id}')" title="History">📜</button>`:''}
           ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn danger" onclick="deleteDefect('${d.id}')">🗑️</button>`:''}
         </div>
