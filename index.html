@@ -145,6 +145,14 @@
   .daily-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;}
   .daily-stat-num{font-size:22px;font-weight:800;color:var(--text);}
   .daily-stat-lbl{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  .daily-stat.clickable{cursor:pointer;transition:all .15s;}
+  .daily-stat.clickable:active{transform:scale(0.96);}
+  .daily-stat.active{border-color:var(--accent);background:rgba(96,165,250,0.12);}
+  .log-item.clickable{cursor:pointer;transition:all .15s;}
+  .log-item.clickable:active{transform:scale(0.98);}
+  .log-item.active{border-color:var(--accent);background:rgba(96,165,250,0.08);}
+  .daily-filter-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(96,165,250,0.12);border:1px solid var(--accent);border-radius:9px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--text);}
+  .daily-filter-chip button{background:none;border:none;color:var(--accent2);font-size:11px;cursor:pointer;font-weight:600;}
   .defect .desc{font-size:15px;font-weight:600;line-height:1.4;margin-bottom:6px;word-break:break-word;}
   .defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);}
   .defect .meta span{display:flex;align-items:center;gap:4px;}
@@ -805,6 +813,9 @@ function openDailyUpdate(){
 }
 function closeDailyUpdate(){ document.getElementById('dailyModal').classList.remove('show'); }
 
+let dailyLogsCache = [];
+let dailyFilter = { action:null, email:null };
+
 async function loadDailyUpdate(){
   const dateStr = document.getElementById('dailyDate').value;
   if(!dateStr) return;
@@ -816,18 +827,29 @@ async function loadDailyUpdate(){
     const {data,error} = await supa.from('activity_logs').select('*').eq('hotel',HOTEL).gte('created_at',startIso).lte('created_at',endIso).order('created_at',{ascending:false});
     hideLoading();
     if(error) throw new Error(error.message);
-    renderDailyUpdate(data||[]);
+    dailyLogsCache = data||[];
+    dailyFilter = { action:null, email:null };
+    renderDailyUpdate();
   }catch(e){ hideLoading(); showToast('Gagal memuat: '+e.message); }
 }
 
-function renderDailyUpdate(logs){
+function setDailyFilter(action, email){
+  if(action!==undefined) dailyFilter.action = (dailyFilter.action===action) ? null : action;
+  if(email!==undefined) dailyFilter.email = (dailyFilter.email===email) ? null : email;
+  renderDailyUpdate();
+}
+function clearDailyFilter(){ dailyFilter = { action:null, email:null }; renderDailyUpdate(); }
+
+function renderDailyUpdate(){
+  const logs = dailyLogsCache;
   const created = logs.filter(l=>l.action==='create').length;
   const updated = logs.filter(l=>l.action==='update_status').length;
   const photos = logs.filter(l=>l.action==='upload_photo').length;
+  const on = (a)=> dailyFilter.action===a ? ' active' : '';
   document.getElementById('dailySummary').innerHTML = `
-    <div class="daily-stat"><div class="daily-stat-num">${created}</div><div class="daily-stat-lbl">🆕 Defect Baru</div></div>
-    <div class="daily-stat"><div class="daily-stat-num">${updated}</div><div class="daily-stat-lbl">🔄 Diupdate</div></div>
-    <div class="daily-stat"><div class="daily-stat-num">${photos}</div><div class="daily-stat-lbl">📷 Foto Upload</div></div>
+    <div class="daily-stat clickable${on('create')}" onclick="setDailyFilter('create')"><div class="daily-stat-num">${created}</div><div class="daily-stat-lbl">🆕 Defect Baru</div></div>
+    <div class="daily-stat clickable${on('update_status')}" onclick="setDailyFilter('update_status')"><div class="daily-stat-num">${updated}</div><div class="daily-stat-lbl">🔄 Diupdate</div></div>
+    <div class="daily-stat clickable${on('upload_photo')}" onclick="setDailyFilter('upload_photo')"><div class="daily-stat-num">${photos}</div><div class="daily-stat-lbl">📷 Foto Upload</div></div>
   `;
 
   const byPerson = {};
@@ -844,7 +866,7 @@ function renderDailyUpdate(logs){
   } else {
     const medals=['🥇','🥈','🥉'];
     personEl.innerHTML = ranked.map(([email,c],idx)=>`
-      <div class="log-item">
+      <div class="log-item clickable${dailyFilter.email===email?' active':''}" onclick="setDailyFilter(undefined,'${email}')">
         <span class="log-ic">${medals[idx]||'👤'}</span>
         <div class="log-body">
           <div><span class="log-user">${esc(displayName(email))}</span> — ${c.total} aktivitas</div>
@@ -855,11 +877,19 @@ function renderDailyUpdate(logs){
   }
 
   const detailEl = document.getElementById('dailyDetail');
-  const detailLogs = logs.filter(l=>l.action!=='login');
+  let detailLogs = logs.filter(l=>l.action!=='login');
+  if(dailyFilter.action) detailLogs = detailLogs.filter(l=>l.action===dailyFilter.action);
+  if(dailyFilter.email) detailLogs = detailLogs.filter(l=>l.user_email===dailyFilter.email);
+
+  const chipParts = [];
+  if(dailyFilter.action) chipParts.push(ACT_NAME[dailyFilter.action]||dailyFilter.action);
+  if(dailyFilter.email) chipParts.push(esc(displayName(dailyFilter.email)));
+  const chip = chipParts.length ? `<div class="daily-filter-chip">🔍 Filter: ${chipParts.join(' + ')} <button onclick="clearDailyFilter()">✕ Tampilkan semua</button></div>` : '';
+
   if(detailLogs.length===0){
-    detailEl.innerHTML = '<div class="log-empty">Tidak ada aktivitas di tanggal ini</div>';
+    detailEl.innerHTML = chip+'<div class="log-empty">Tidak ada aktivitas'+(chipParts.length?' untuk filter ini':' di tanggal ini')+'</div>';
   } else {
-    detailEl.innerHTML = detailLogs.map(l=>`<div class="log-item">
+    detailEl.innerHTML = chip+detailLogs.map(l=>`<div class="log-item">
       <span class="log-ic">${ACT_ICON[l.action]||'•'}</span>
       <div class="log-body">
         <div><span class="log-user">${esc(displayName(l.user_email))}</span> · <span class="log-act">${ACT_NAME[l.action]||l.action}</span></div>
@@ -1321,11 +1351,18 @@ async function handlePhoto(input, key, type){
 }
 async function uploadPhoto(defectId, type, dataUrl, seq){
   const blob=dataUrlToBlob(dataUrl);
-  const path=`${defectId}/${type}_${Date.now()}_${seq}.jpg`;
-  const {error}=await supa.storage.from(BUCKET).upload(path, blob, {contentType:'image/jpeg', upsert:true});
-  if(error) throw new Error('Upload foto gagal: '+error.message);
-  const {data}=supa.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  const formData = new FormData();
+  formData.append('file', blob);
+  formData.append('upload_preset', 'verse_hotels');
+  formData.append('public_id', `${defectId}/${type}_${Date.now()}_${seq}`);
+  const res = await fetch('https://api.cloudinary.com/v1_1/bojm1fah/image/upload', { method:'POST', body:formData });
+  if(!res.ok){
+    let msg = res.statusText;
+    try{ const errJson = await res.json(); msg = errJson?.error?.message || msg; }catch(e){}
+    throw new Error('Upload foto gagal: '+msg);
+  }
+  const data = await res.json();
+  return data.secure_url;
 }
 function parsePhotos(val){
   if(!val) return [];
